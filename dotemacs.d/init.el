@@ -43,7 +43,7 @@
 ;; fix for default dark theme in linux
 (set-face-attribute 'font-lock-string-face nil :background "#333333")
 (set-face-attribute 'font-lock-constant-face nil :background "#333333")
-;;(set-face-attribute 'default nil :height 80)
+(set-face-attribute 'default nil :height 80)
 (setq-default cursor-type 'bar)
 (set-cursor-color "#ffffff")
 
@@ -81,10 +81,40 @@
                   ; when Smex is auto-initialized on its first run.
 
 
+(require 'yaml-mode)
+(add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
+
+
+(require 'mercurial)
+(require 'ahg)
+
+
+(add-to-list 'load-path "~/.emacs.d/plugins/git/contrib/emacs")
+(require 'git)
+
+
+(add-to-list 'load-path "~/.emacs.d/plugins/popup-el")
+(require 'popup)
+
+(add-to-list 'load-path "~/.emacs.d/plugins/auto-complete")
+(require 'auto-complete-config)
+
+
 (add-to-list 'load-path "~/.emacs.d/plugins/ergoemacs-mode")
 (require 'ergoemacs-mode)
 
 (setq ergoemacs-theme nil) ;; Uses Standard Ergoemacs keyboard theme
 (setq ergoemacs-keyboard-layout "us") ;; Assumes QWERTY keyboard layout
 (ergoemacs-mode 1)
-
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(python-shell-interpreter "python2"))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
