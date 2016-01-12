@@ -92,6 +92,9 @@
 (add-to-list 'load-path "~/.emacs.d/plugins/git/contrib/emacs")
 (require 'git)
 
+;;(add-to-list 'load-path "~/.emacs.d/plugins/git-emacs")
+;;(require 'git-emacs)
+
 
 (add-to-list 'load-path "~/.emacs.d/plugins/popup-el")
 (require 'popup)
