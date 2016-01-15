@@ -60,8 +60,6 @@
       '(("files" "^\\*scratch\\*" nil nil bs-visits-non-file bs-sort-buffer-interns-are-last)))
 
 (global-set-key (kbd "<f2>") 'bs-show)
-
-
 (add-to-list 'load-path "~/.emacs.d/plugins")
 
 
@@ -79,6 +77,10 @@
 (require 'smex) ; Not needed if you use package.el
 (smex-initialize) ; Can be omitted. This might cause a (minimal) delay
                   ; when Smex is auto-initialized on its first run.
+
+
+(require 'minimap)
+(setq minimap-window-location 'right)
 
 
 (require 'yaml-mode)
