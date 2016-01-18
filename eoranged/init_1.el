@@ -38,10 +38,18 @@
 
 (defconst eor/python-path
   (list
-   "/Users/vprotasov/dev/web/Sources/build/venv/lib/python2.6"
-   "/Users/vprotasov/dev/web/Sources/build/venv/lib/python2.6/site-packages"
-   "/Users/vprotasov/dev/web/Sources/build"
-   ))
+   "/Users/vprotasov/dev/web/Sources/LicensingService/Backend/lib/python"
+   "/Users/vprotasov/dev/web/Sources/Common/Backend/myaccount_client/python"
+   "/Users/vprotasov/dev/web/Sources/MyAccount"
+   "/Users/vprotasov/dev/web/Sources/Common/Backend/pax_client/python"
+   "/Users/vprotasov/dev/web/Sources/Common/Backend/pd_private_api_client"
+   "/Users/vprotasov/dev/web/Sources/Desktop/Backend/python"
+   "/Users/vprotasov/dev/web/Sources/Portal"
+   "/Users/vprotasov/dev/web/Sources/Common/Backend"
+   "/Users/vprotasov/dev/web/Sources/RAS/Backend/lib/python"
+   "/Users/vprotasov/dev/web/Sources/SWP/PrivateAPIClient/lib/python"
+   "/Users/vprotasov/dev/web/Sources/Common/Backend/www_private_api_client"
+   ""))
 
 (setenv "PYTHONPATH" (eor/concat-list eor/python-path ":"))
 
@@ -51,9 +59,6 @@
 (require 'package)
 (add-to-list 'package-archives
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
-(add-to-list 'package-directory-list (expand-file-name "elpa-to-submit" user-emacs-directory))
-(when (not package-archive-contents)
-    (package-refresh-contents))
 (package-initialize)
 
 (defvar eor/required-packages
@@ -63,7 +68,6 @@
 	'company
 	'company-anaconda
 	'company-flx
-	'diminish
 	'f
 	'flx
 	'flx-ido
@@ -105,27 +109,14 @@
 ;; Data directory
 (defconst emacs-persistence-directory (concat user-emacs-directory "data/")
   "Directory for emacs data files and other garbage")
-
 (unless (file-exists-p emacs-persistence-directory)
     (make-directory emacs-persistence-directory t))
 
 ;;
 ;; auto-save and auto-backup
 ;;
-(require 'desktop)
-(setq-default desktop-dirname (expand-file-name "desktop/" emacs-persistence-directory))
-(setq-default desktop-base-file-name "emacs.desktop")
-(setq-default desktop-base-lock-name "emacs.desktop.lock")
-(setq desktop-path (list desktop-dirname))
 (desktop-save-mode t)
-
-(setq auto-save-list-file-prefix (concat emacs-persistence-directory "auto-save-list/saves-"))
 (setq make-backup-files nil)
-(defconst eor/autosave-directory (f-join emacs-persistence-directory "autosave"))
-(unless (f-dir? eor/autosave-directory)
-  (make-directory eor/autosave-directory))
-(setq auto-save-file-name-transforms
-      `((".*" ,eor/autosave-directory t)))
 
 
 ;;
@@ -137,16 +128,7 @@
 ;; Other useful stuff
 ;;
 
-;; log recent files (recentf-open-files will list them all)
-(recentf-mode t)
-;; highlight current line
-(global-hl-line-mode t)
-;; save minibuffer history
-(savehist-mode 1)
-;; make indentation commands use space only (never tab character)
-(setq-default indent-tabs-mode nil)
-;; set default tab char's display width to 4 spaces
-(setq-default tab-width 4)
+
 ;; Show column numbers
 (column-number-mode t)
 ;; And matching parens
@@ -155,18 +137,11 @@
 (setq blink-matching-paren-distance nil)
 (setq show-paren-style 'mixed)
 
-;; ;; Which function mode
-;; ;; http://www.masteringemacs.org/articles/2011/11/19/which-function-mode/
-;; (which-function-mode t)
-;; (set-face-foreground 'which-func "yellow2")
-;; (add-to-list 'semantic-default-submodes 'global-semantic-stickyfunc-mode)
-;; (semantic-mode 1)
-;;
-;;(require 'stickyfunc-enhance)
-
-;; Disable the alarm
-;;(setq visible-bell nil)
-(setq ring-bell-function 'ignore)
+;; Which function mode
+;; http://www.masteringemacs.org/articles/2011/11/19/which-function-mode/
+(which-function-mode t)
+;; Do not blink the buffer!!!!11111
+(setq visible-bell nil)
 
 ;; Make eshell store its files in .emacs.d
 (require 'eshell)
@@ -182,8 +157,7 @@
 ;; dark theme
 (load-theme 'tsdh-dark)
 ;; smaller font
-(set-frame-font "Terminus-10")
-;;(set-face-attribute 'default nil :height 100)
+(set-face-attribute 'default nil :height 100)
 
 
 ;; ibuffer
@@ -198,7 +172,6 @@
 	 ;; Parallels web
 	 ("Parallels Desktop" (filename . ".*/web/Sources/Desktop/Backend/python/pd_server/.*"))
 	 ("License Service" (filename . ".*/web/Sources/LicensingService/Backend/lib/python/ls_server/.*"))
-	 ("MyAccount" (filename . "*./web/Sources/MyAccount/Backend/.*"))
 	 ("Remote Access Service" (filename . ".*/web/Sources/RAS/Backend/lib/python/ras_server/.*"))
 	 ("Web Common" (filename . ".*/web/Sources/Common/Backend/.*"))
 	 ("Other web" (filename . ".*/web/Sources/.*"))
@@ -214,7 +187,8 @@
 	 ("ag" (name . "\*ag"))
          ("logs" (filename . ".*\.log$"))
 	 ("*..*" (name . "\*.*\*"))
-	 )))
+
+         )))
 
 (add-hook 'ibuffer-mode-hook
           '(lambda ()
@@ -257,73 +231,6 @@
 (setq projectile-cache-file (expand-file-name "projectile.cache" projectile-data-dir))
 (setq projectile-keymap-prefix (kbd "s-p"))
 (projectile-global-mode)
-(eval-after-load "projectile" '(diminish 'projectile-mode))
-
-(defun eor/project/file-name ()
-  "Return file name relative to project root."
-  (when (projectile-project-p)
-    (s-chop-prefix (projectile-project-root) buffer-file-name)))
-
-(defun eor/project/copy-file-name ()
-  "Copy file name relative to project root."
-  (interactive)
-  (when (projectile-project-p)
-    (kill-new (eor/project/file-name))))
-
-(put 'eor/project/repo-browser-url-pattern 'safe-local-variable 'stringp)
-(defun eor/project/get-repo-file-url ()
-  "Open current file in browser (for github, gitlab, stash and so on)."
-  (when (and (boundp 'eor/project/repo-browser-url-pattern)
-	     (projectile-project-p))
-
-    (let ((filename (eor/project/file-name))
-	  (revision (vc-working-revision (buffer-file-name))))
-      (s-replace "{filename}" filename
-		 (s-replace "{revision}" revision
-			    eor/project/repo-browser-url-pattern)))))
-
-(defun eor/project/open-repo-file-in-browser ()
-  "Open current file in repo browser."
-  (interactive)
-  (let ((url (eor/project/get-repo-file-url)))
-    (when url
-      (browse-url url))))
-
-;; Mode-line
-(setq-default mode-line-format
- (list
-  "   "
-  ;; is this buffer read-only?
-  '(:eval (if buffer-read-only
-            (propertize "✎ "
-                        'face '(:foreground "red" :height 70)
-                        'help-echo "Buffer is read-only")
-            (propertize "✎ "
-                        'face '(:foreground "green" :height 70)
-                        'help-echo "Buffer is writable")))
-  ;; was this buffer modified since the last save?
-  '(:eval (if (buffer-modified-p)
-            (propertize "★ "
-                        'face '(:height 70 :foreground "red")
-                        'help-echo "Buffer has been modified")
-            (propertize "★ "
-                        'face '(:height 70 :foreground "green")
-                        'help-echo "Buffer is saved")))
-  "    "
-  ;; the buffer name; the file name as a tool tip
-  '(:eval (propertize "%b "
-                      'face '(:weight bold)
-                      'help-echo (buffer-file-name)))
-
-  "    "
-
-  mode-line-position
-
-  "    "
-
-  '(vc-mode vc-mode)
-  ))
-
 
 
 ;;
@@ -353,7 +260,7 @@
 ;; Flycheck
 ;;
 (add-hook 'after-init-hook #'global-flycheck-mode)
-(eval-after-load "flycheck" '(diminish 'flycheck-mode))
+
 ;;
 ;; The silver searcher
 ;;
@@ -367,23 +274,22 @@
 ;; Yasnippet
 ;;
 (yas-global-mode 1)
-(diminish 'yas-minor-mode)
+
 ;;
 ;; Python
 ;;
 (require 'python)
-;(defun projectile-venv-activate ()
-;  (interactive "P")
-;  (when (projectile-project-p)
-;    (let ((project-venv (f-join (projectile-project-root) "venv")))
-;      (when (f-dir? project-venv)
-;	(setq python-shell-virtualenv-path project-venv)))))
-;
-;(add-hook 'python-mode-hook 'projectile-venv-activate)
+(defun projectile-venv-activate ()
+  (interactive "P")
+  (when (projectile-project-p)
+    (let ((project-venv (f-join (projectile-project-root) "venv")))
+      (when (f-dir? project-venv)
+	(setq python-shell-virtualenv-path project-venv)))))
+
+(add-hook 'python-mode-hook 'projectile-venv-activate)
 (add-hook 'python-mode-hook 'anaconda-mode)
 (add-hook 'python-mode-hook 'eldoc-mode)
 ;;(pyenv-mode)
-(add-to-list 'auto-mode-alist '("\\.py.example\\'" . python-mode))
 
 ;;
 ;; Auto-complete
@@ -403,14 +309,12 @@
  '(progn
    (add-to-list 'company-backends 'company-anaconda)))
 (with-eval-after-load 'company
-  (company-flx-mode +1)
-  (diminish 'company-mode))
+  (company-flx-mode +1))
 ;;
 ;; Autopair
 ;;
 (require 'autopair)
 (autopair-global-mode t)
-(diminish 'autopair-mode)
 (add-hook 'python-mode-hook
           #'(lambda ()
               (setq autopair-handle-action-fns
@@ -418,10 +322,12 @@
                           #'autopair-python-triple-quote-action))))
 
 
+
 ;;
 ;; header2
 ;;
 (require 'header2)
+(add-to-list 'python-mode-hook 'auto-make-header)
 ;; should be set in .dir-locals file in project root
 (put 'eor/prl/project 'safe-local-variable 'stringp)
 
@@ -445,11 +351,10 @@
   (insert "Copyright:\n"
 	  "Copyright " (format-time-string "%Y-%Y. ") "Parallels IP Holdings GmbH. All Rights Reserved.\n"))
 
-(defsubst eor/prl/header-python ()
+(defun eor/prl/header-python ()
   "Insert docstring with copyright for python files in parallels projects."
-
   (when (and (boundp 'eor/prl/project) (eq major-mode 'python-mode))
-    (eor/header-python-no-prefix-string)
+    (eor/header-no-prefix-string)
     (eor/header-triple-quotes)
     (eor/prl/header-file-name)
     (header-blank)
@@ -469,8 +374,6 @@
 (register-file-header-action "^Copyright [0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]" 'eor/prl/header-update-copyright)
 
 (add-hook 'write-file-hooks 'auto-update-file-header)
-(add-to-list 'hack-local-variables-hook 'auto-make-header)
-
 
 
 ;;
