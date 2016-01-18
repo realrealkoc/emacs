@@ -46,7 +46,6 @@
 	'flx
 	'flx-ido
 	'flycheck
-	'magit
 	'haskell-mode
 	'header2
 	'ido-ubiquitous
@@ -195,7 +194,6 @@
                         (filename . ".*/.*.el$")))
          ;; Other stuff
          ("dired" (mode . dired-mode))
-         ("magit" (name . "\*magit"))
          ("logs" (filename . ".*\.log$"))
          ("*..*" (name . "\*.*\*"))
          )))
@@ -267,15 +265,23 @@
 (require 'ahg)
 (global-set-key (kbd "s-h") 'ahg-status)
 
+
+;;
+;; Git
+;;
+(add-to-list 'load-path "~/.emacs.d/plugins/git/contrib/emacs")
+(require 'git)
+(global-set-key (kbd "s-g") 'git-status)
+
 ;;
 ;; Magit
 ;;
-(require 'magit)
-(global-set-key (kbd "s-g") 'magit-status)
-(setq
- ;; use ido to look for branches
- magit-completing-read-function 'magit-ido-completing-read
- )
+;;(require 'magit)
+;;(global-set-key (kbd "s-g") 'magit-status)
+;;(setq
+;; ;; use ido to look for branches
+;; magit-completing-read-function 'magit-ido-completing-read
+;; )
 
 
 ;;
