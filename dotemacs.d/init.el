@@ -610,6 +610,8 @@ what diminished modes would be on the mode-line if they were still minor."
 
 ;; (global-semantic-idle-scheduler-mode 1)
 
+(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
+
 (defun run-compile-command ()
  (interactive)
  (setq-local compilation-read-command nil)
