@@ -39,13 +39,19 @@
 	'anaconda-mode
 	'autopair
 	'company
+    'company-c-headers
 	'company-anaconda
 	'company-flx
+    'company-quickhelp
 	'diminish
 	'f
 	'flx
 	'flx-ido
 	'flycheck
+    'flycheck-pos-tip
+    'flycheck-color-mode-line
+    'flycheck-google-cpplint
+    'fill-column-indicator
 	'haskell-mode
 	'header2
 	'ido-ubiquitous
@@ -63,7 +69,13 @@
 	'sr-speedbar
 	'ahg
 	'minimap
-	'yaml-mode)
+    'neotree
+	'yaml-mode
+    'auto-complete
+    'auto-complete-c-headers
+    'iedit
+    'google-c-style
+    'cedet)
   "Libraries that should be installed by default.")
 
 (dolist (package eor/required-packages)
@@ -126,6 +138,25 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
 
+(defun comment-eclipse ()
+  (interactive)
+  (let ((start (line-beginning-position))
+        (end (line-end-position)))
+    (when (or (not transient-mark-mode) (region-active-p))
+      (setq start (save-excursion
+                    (goto-char (region-beginning))
+                    (beginning-of-line)
+                    (point))
+            end (save-excursion
+                  (goto-char (region-end))
+                  (end-of-line)
+                  (point))))
+    (comment-or-uncomment-region start end)))
+
+;;(global-set-key (kbd "M-'") 'comment-dwim)
+(global-set-key (kbd "M-'") 'comment-eclipse)
+
+
 ;; dark theme
 (load-theme 'tsdh-dark)
 ;; smaller font
@@ -154,7 +185,7 @@
 (setq linum-format "%d ")
 ;;(global-linum-mode 1)
 (defun toggle-global-linum-mode () (interactive) (if global-linum-mode (global-linum-mode -1) (global-linum-mode 1)))
-(global-set-key (kbd "C-M-S-l") 'toggle-global-linum-mode)
+(global-set-key (kbd "s-L") 'toggle-global-linum-mode)
 
 
 ;;
@@ -167,6 +198,9 @@
 (setq minimap-window-location 'right)
 
 (global-set-key (kbd "s-M") 'minimap-mode)
+
+(require 'neotree)
+(global-set-key [f8] 'neotree-toggle)
 
 
 ;;
@@ -181,21 +215,24 @@
 (setq ibuffer-saved-filter-groups
       '(("Projects"
          ;; My Projects
-         ("Crawler" (filename . ".*/Projects/Crawler/.*"))
-         ("github" (filename . ".*/Projects/github/.*"))
-         ("sandbox" (filename . ".*/Projects/sandbox/.*"))
-         ("Other projects" (filename . ".*/Projects/.*"))
+         ("tlib/*"      (filename . ".*/Projects/tlib/.*"))
+         ("Crawler/*"   (filename . ".*/Projects/python/Crawler/.*"))
+         ("github/*"    (filename . ".*/Projects/github/.*"))
+         ("bitbucke/*t" (filename . ".*/Projects/bitbucket/.*"))
+         ("sandbox/*"   (filename . ".*/Projects/sandbox/.*"))
+         ("python/*"    (filename . ".*/Projects/python/.*"))
+         ("Projects/*"  (filename . ".*/Projects/.*"))
          ("emacs" (or
-                   (name . "^\\*scratch\\*$")
-                   (name . "^\\*Messages\\*$")))
-         ;; Emacs configuration
-         ("emacs.d" (or (filename . ".emacs.d")
+                        (name . "^\\*scratch\\*$")
+                        (name . "^\\*Messages\\*$")))
+         ("emacs.d/*" (or
+                        (filename . ".emacs.d")
                         (filename . "emacs-config")
                         (filename . ".*/.*.el$")))
-         ;; Other stuff
-         ("dired" (mode . dired-mode))
-         ("logs" (filename . ".*\.log$"))
-         ("*..*" (name . "\*.*\*"))
+         ;; other stuff
+         ("dired"       (mode . dired-mode))
+         ("log$"        (filename . ".*\.log$"))
+         ("*.*"         (name . "\*.*\*"))
          )))
 
 (add-hook 'ibuffer-mode-hook
@@ -224,6 +261,45 @@
 (ido-ubiquitous-mode 1)
 
 
+;;
+;; Projectile
+;;
+(require 'projectile)
+(setq projectile-keymap-prefix (kbd "s-P"))
+(projectile-global-mode)
+(eval-after-load "projectile" '(diminish 'projectile-mode))
+
+(defun eor/project/file-name ()
+  "Return file name relative to project root."
+  (when (projectile-project-p)
+    (s-chop-prefix (projectile-project-root) buffer-file-name)))
+
+(defun eor/project/copy-file-name ()
+  "Copy file name relative to project root."
+  (interactive)
+  (when (projectile-project-p)
+    (kill-new (eor/project/file-name))))
+
+(put 'eor/project/repo-browser-url-pattern 'safe-local-variable 'stringp)
+(defun eor/project/get-repo-file-url ()
+  "Open current file in browser (for github, gitlab, stash and so on)."
+  (when (and (boundp 'eor/project/repo-browser-url-pattern)
+	     (projectile-project-p))
+
+    (let ((filename (eor/project/file-name))
+	  (revision (vc-working-revision (buffer-file-name))))
+      (s-replace "{filename}" filename
+		 (s-replace "{revision}" revision
+			    eor/project/repo-browser-url-pattern)))))
+
+(defun eor/project/open-repo-file-in-browser ()
+  "Open current file in repo browser."
+  (interactive)
+  (let ((url (eor/project/get-repo-file-url)))
+    (when url
+      (browse-url url))))
+
+
 ;; Mode-line
 (setq-default mode-line-format
  (list
@@ -249,21 +325,58 @@
   '(:eval (propertize "%b "
                       'face '(:weight bold)
                       'help-echo (buffer-file-name)))
-
   "    "
-
   mode-line-position
-
   "    "
-
   '(vc-mode vc-mode)
   ))
+
+
+;;
+;; Diminish
+;;
+(require 'diminish)
+(defun diminished-modes ()
+  "Echo all active diminished or minor modes as if they were minor.
+The display goes in the echo area; if it's too long even for that,
+you can see the whole thing in the *Messages* buffer.
+This doesn't change the status of any modes; it just lets you see
+what diminished modes would be on the mode-line if they were still minor."
+  (interactive)
+  (let ((minor-modes minor-mode-alist)
+        message)
+    (while minor-modes
+      (when (symbol-value (caar minor-modes))
+        ;; This minor mode is active in this buffer
+        (let* ((mode-pair (car minor-modes))
+               (mode (car mode-pair))
+               (minor-pair (or (assq mode diminished-mode-alist) mode-pair))
+               (minor-name (cadr minor-pair)))
+          (when (symbolp minor-name)
+            ;; This minor mode uses symbol indirection in the cdr
+            (let ((symbols-seen (list minor-name)))
+              (while (and (symbolp (callf symbol-value minor-name))
+                          (not (memq minor-name symbols-seen)))
+                (push minor-name symbols-seen))))
+          (push minor-name message)))
+      (callf cdr minor-modes))
+    ;; Handle :eval forms
+    (setq message (mapconcat
+                   (lambda (form)
+                     (if (and (listp form) (eq (car form) :eval))
+                         (apply 'eval (cdr form))
+                       form))
+                   (nreverse message) ""))
+    (when (= (string-to-char message) ?\ )
+      (callf substring message 1))
+    (message "%s" message)))
+
 
 ;;
 ;; aHg
 ;;
 (require 'ahg)
-(global-set-key (kbd "s-h") 'ahg-status)
+(global-set-key (kbd "s-H") 'ahg-status)
 
 
 ;;
@@ -271,7 +384,7 @@
 ;;
 (add-to-list 'load-path "~/.emacs.d/plugins/git/contrib/emacs")
 (require 'git)
-(global-set-key (kbd "s-g") 'git-status)
+(global-set-key (kbd "s-G") 'git-status)
 
 ;;
 ;; Magit
@@ -290,6 +403,76 @@
 (add-hook 'after-init-hook #'global-flycheck-mode)
 (eval-after-load "flycheck" '(diminish 'flycheck-mode))
 
+(with-eval-after-load 'flycheck
+ (flycheck-pos-tip-mode))
+
+(eval-after-load "flycheck"
+  '(add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode))
+
+(setq flycheck-highlighting-mode 'lines)
+
+;; Flycheck C++
+(setq-default flycheck-disabled-checkers
+	      (append flycheck-disabled-checkers
+		      '(c/c++-clang)))
+
+(add-hook 'c++-mode-hook (lambda () (setq flycheck-gcc-language-standard "c++11")))
+
+;; (eval-after-load 'flycheck
+;;   '(progn
+;;      (require 'flycheck-google-cpplint)
+;;      ;; Add Google C++ Style checker.
+;;      ;; In default, syntax checked by Clang and Cppcheck.
+;;      (flycheck-add-next-checker 'c/c++-gcc
+;;                                 '(warnings-only . c/c++-googlelint))))
+(eval-after-load 'flycheck
+  '(progn
+     (require 'flycheck-google-cpplint)
+     ;; Add Google C++ Style checker.
+     ;; In default, syntax checked by Clang and Cppcheck.
+     (flycheck-add-next-checker 'c/c++-clang
+                                'c/c++-googlelint 'append)))
+
+(custom-set-variables
+ '(flycheck-c/c++-googlelint-executable "/usr/bin/cpplint")
+ '(flycheck-googlelint-verbose "3")
+ '(flycheck-googlelint-filter "-legal/copyright")  ;; -readability/streams,-whitespace/operators,-legal/copyright,-whitespace,+whitespace/braces
+ '(flycheck-googlelint-linelength "120"))
+
+;;
+(add-hook 'c-mode-common-hook 'google-set-c-style)
+(add-hook 'c-mode-common-hook 'google-make-newline-indent)
+
+;; Flycheck Python Flake8
+(setq-default flycheck-flake8-maximum-line-length 120)
+
+(setq
+ flycheck-python-flake8-executable "/usr/bin/flake8-python2"
+ python-check-command "/usr/bin/pyflakes-python2"
+ python-shell-interpreter "/usr/bin/python2")
+
+;; for virtualenv
+;; (setq
+;;  flycheck-python-flake8-executable "~/Projects/Crawler/env/bin/flake8"
+;;  python-check-command "~/Projects/Crawler/env/bin/pyflakes"
+;;  python-shell-interpreter "~/Projects/Crawler/env/bin/python")
+
+
+;;;;
+;;;; FillColumnIndicator
+;;;;
+;;(require 'fill-column-indicator)
+;;(setq fci-rule-column 120)
+;;(setq fci-rule-width 2)
+;;(setq fci-rule-color "darkgrey")
+;;(define-globalized-minor-mode global-fci-mode fci-mode
+;;  (lambda ()
+;;    (if (and
+;;         (not (string-match "^\*.*\*$" (buffer-name)))
+;;         (not (eq major-mode 'dired-mode)))
+;;        (fci-mode 1))))
+;;(global-fci-mode 1)
+
 
 ;;
 ;; Yasnippet
@@ -302,8 +485,12 @@
 ;; Python
 ;;
 (require 'python)
+
 (add-hook 'python-mode-hook 'anaconda-mode)
 (add-hook 'python-mode-hook 'eldoc-mode)
+
+(add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
+(add-to-list 'interpreter-mode-alist '("python2" . python-mode))
 
 
 ;;
@@ -313,10 +500,54 @@
 (add-hook 'after-init-hook 'global-company-mode)
 (eval-after-load "company"
  '(progn
+   (add-to-list 'company-backends 'company-c-headers)
    (add-to-list 'company-backends 'company-anaconda)))
 (with-eval-after-load 'company
   (company-flx-mode +1)
   (diminish 'company-mode))
+
+(setq company-minimum-prefix-length 1)
+(setq company-idle-delay 0)
+
+(company-quickhelp-mode 1)
+
+
+;;
+;; Fix <TAB> for YASnippet + Company
+;; http://thrownforaloop.com/posts/emacs-configuration/
+;;
+(defun check-expansion ()
+  (save-excursion
+    (if (looking-at "\\_>") t
+      (backward-char 1)
+      (if (looking-at "\\.") t
+        (backward-char 1)
+        (if (looking-at "->") t nil)))))
+
+(defun do-yas-expand ()
+  (let ((yas/fallback-behavior 'return-nil))
+    (yas/expand)))
+
+(defun tab-indent-or-complete ()
+  (interactive)
+  (if (minibufferp)
+      (minibuffer-complete)
+    (if (or (not yas/minor-mode)
+            (null (do-yas-expand)))
+        (if (check-expansion)
+            (company-complete-common)
+          (indent-for-tab-command)))))
+
+(defun bind-tab-properly ()
+  "Binds tab to tab-indent-or-complete, overwritting yas and company bindings"
+  (interactive)
+  ;;overwrite yas and company tab mappings
+  (define-key yas-minor-mode-map (kbd "<tab>") 'tab-indent-or-complete)
+  (define-key yas-minor-mode-map (kbd "TAB") 'tab-indent-or-complete)
+  (define-key company-active-map [tab] 'tab-indent-or-complete)
+  (define-key company-active-map (kbd "TAB") 'tab-indent-or-complete))
+
+(add-hook 'company-mode-hook 'bind-tab-properly)
 
 
 ;;
@@ -333,6 +564,60 @@
 
 
 ;;
+;; iedit
+;;
+(define-key global-map (kbd "s-R") 'iedit-mode)
+
+
+;;
+;; C++
+;;
+(defun style-c-indent-init ()
+  (setq c-default-style "linux"
+        c-basic-offset 4))
+(add-hook 'c++-mode-hook 'style-c-indent-init)
+
+(defun company-c-header-init ()
+  (add-to-list 'company-c-headers-path-system "/usr/include/c++/5.3.0/"))
+
+(add-hook 'c++-mode-hook 'company-c-header-init)
+(add-hook 'c-mode-hook 'company-c-header-init)
+
+;; (require 'auto-complete)
+;; (require 'auto-complete-config)
+;; (ac-config-default)
+
+;; (defun ac-c-header-init ()
+;;   (require 'auto-complete-c-headers)
+;;   (add-to-list 'ac-sources 'ac-source-c-headers)
+;;   (add-to-list 'achead:include-directories '"/usr/include/c++/5.3.0"))
+
+;; (add-hook 'c++-mode-hook 'ac-c-header-init)
+;; (add-hook 'c-mode-hook 'ac-c-header-init)
+
+;; (semantic-mode 1)
+
+;; (defun add-semantic-to-autocomplete()
+;;   (add-to-list 'ac-sources 'ac-source-semantic))
+
+;; (add-hook 'c-mode-common-hook 'add-semantic-to-autocomplete)
+
+;; (global-ede-mode 1)
+
+;; (ede-cpp-root-project "my project" :file "~/Projects/sandbox/cpp/binsearch/main.cpp"
+;;                       :include-path '("/../includes"))
+
+;; (global-semantic-idle-scheduler-mode 1)
+
+(defun run-compile-command ()
+ (interactive)
+ (setq-local compilation-read-command nil)
+ (call-interactively 'compile))
+
+(global-set-key (kbd "<f5>") 'run-compile-command)
+
+
+;;
 ;;; View tags other window
 ;;
 (defun view-tag-other-window (tagname &optional next-p regexp-p)
@@ -343,9 +628,9 @@
     (recenter 0)
     (select-window window)))
 
-;;(global-set-key (kbd "M-g") 'find-tag-other-window)
-;;(global-set-key (kbd "M-G") 'view-tag-other-window)
-;;(global-set-key (kbd "M-r") 'tags-query-replace)
+;; (global-set-key (kbd "s-F") 'find-tag-other-window)
+;; (global-set-key (kbd "s-G") 'view-tag-other-window)
+;; (global-set-key (kbd "s-R") 'tags-query-replace)
 
 
 ;;
@@ -381,6 +666,12 @@
 (defadvice read-passwd (around my-read-passwd act)
   (let ((local-function-key-map nil))
     ad-do-it))
+
+;;
+;; undisabled commands
+;;
+(put 'downcase-region 'disabled nil)
+(put 'upcase-region 'disabled nil)
 
 (provide 'init)
 ;;; init.el ends here
