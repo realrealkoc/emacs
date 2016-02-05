@@ -412,6 +412,7 @@ what diminished modes would be on the mode-line if they were still minor."
 (setq flycheck-highlighting-mode 'lines)
 
 ;; Flycheck C++
+(require 'flycheck-google-cpplint)
 (setq-default flycheck-disabled-checkers
 	      (append flycheck-disabled-checkers
 		      '(c/c++-clang)))
@@ -427,16 +428,16 @@ what diminished modes would be on the mode-line if they were still minor."
 ;;                                 '(warnings-only . c/c++-googlelint))))
 (eval-after-load 'flycheck
   '(progn
-     (require 'flycheck-google-cpplint)
+     ;; (require 'flycheck-google-cpplint)
      ;; Add Google C++ Style checker.
      ;; In default, syntax checked by Clang and Cppcheck.
-     (flycheck-add-next-checker 'c/c++-clang
+     (flycheck-add-next-checker 'c/c++-gcc
                                 'c/c++-googlelint 'append)))
 
 (custom-set-variables
  '(flycheck-c/c++-googlelint-executable "/usr/bin/cpplint")
- '(flycheck-googlelint-verbose "3")
- '(flycheck-googlelint-filter "-legal/copyright")  ;; -readability/streams,-whitespace/operators,-legal/copyright,-whitespace,+whitespace/braces
+ ;; '(flycheck-googlelint-verbose "3")
+ '(flycheck-googlelint-filter "-legal/copyright,-whitespace/braces,-whitespace/parens")  ;; -readability/streams,-whitespace/operators,-legal/copyright,-whitespace,+whitespace/braces
  '(flycheck-googlelint-linelength "120"))
 
 ;;
