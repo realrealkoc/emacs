@@ -202,6 +202,7 @@
 (setq speedbar-show-unknown-files t) ; show all files
 (setq speedbar-use-images nil) ; use text for buttons
 (setq sr-speedbar-right-side nil) ; put on left side
+(setq sr-speedbar-auto-refresh nil)
 
 ;;
 (require 'minimap)
