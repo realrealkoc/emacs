@@ -172,7 +172,9 @@
 ;; dark theme
 (load-theme 'tsdh-dark)
 ;; smaller font
-(set-frame-font "Terminus-10")
+;;(set-frame-font "Terminus-10")
+(set-face-attribute 'default nil :font "Terminus-10" )
+(set-frame-font "Terminus-10" nil t)
 ;;(set-face-attribute 'default nil :height 100)
 
 ;;
