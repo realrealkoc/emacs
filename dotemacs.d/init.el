@@ -172,7 +172,7 @@
 ;; dark theme
 (load-theme 'tsdh-dark)
 ;; smaller font
-;;(set-frame-font "Terminus-10")
+;; (set-frame-font "Terminus-10")
 (set-face-attribute 'default nil :font "Terminus-10" )
 (set-frame-font "Terminus-10" nil t)
 ;;(set-face-attribute 'default nil :height 100)
@@ -586,6 +586,12 @@ what diminished modes would be on the mode-line if they were still minor."
 ;; p4
 ;;
 (require 'p4)
+
+;;
+;; Robot mode (https://github.com/sakari/robot-mode)
+;;
+(load-file "~/.emacs.d/plugins/robot-mode.el")
+(add-to-list 'auto-mode-alist '("\\.robot\\'" . robot-mode))
 
 ;;
 ;; Switching layout when entering commands
