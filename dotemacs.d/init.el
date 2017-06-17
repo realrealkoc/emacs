@@ -15,6 +15,11 @@
 ;; And maximize window
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
+
+(setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+(setq exec-path (append exec-path '("/usr/local/bin")))
+
+
 ;;
 ;; package.el
 ;;
@@ -39,11 +44,8 @@
     'flx
     'flx-ido
     'flycheck
-    'flycheck-pos-tip
     'flycheck-color-mode-line
-    'flycheck-google-cpplint
-    ;; 'google-c-style
-    'fill-column-indicator
+    'flycheck-pos-tip
     'ido-ubiquitous
     'python-mode
     'p4
@@ -70,51 +72,43 @@
 ;;
 ;; Custom settings file
 ;;
-(setq custom-file (concat user-emacs-directory "emacs-custom.el"))
-;; Load custom file only if one is exists
-(if (file-exists-p custom-file)
+(setq custom-file (f-join user-emacs-directory "emacs-custom.el"))
+(if (f-exists? custom-file)
     (load custom-file))
 
+;; Plugins
+(defconst kc/plugins-directory (f-join user-emacs-directory "plugins")
+  "Plugins Directory.")
+
+(if (f-dir? kc/plugins-directory)
+    (add-to-list 'load-path kc/plugins-directory))
+
 ;; Data directory
-(defconst emacs-persistence-directory (concat user-emacs-directory "data/")
+(defconst kc/emacs-persistence-directory (f-join user-emacs-directory "data")
   "Directory for Emacs data files and other garbage.")
 
-(unless (file-exists-p emacs-persistence-directory)
-  (make-directory emacs-persistence-directory t))
+(unless (f-dir? kc/emacs-persistence-directory)
+  (f-mkdir kc/emacs-persistence-directory))
 
 ;;
 ;; auto-save and auto-backup
 ;;
 (require 'desktop)
-(setq-default desktop-dirname (expand-file-name "desktop/" emacs-persistence-directory))
+(setq-default desktop-dirname (f-join kc/emacs-persistence-directory "desktop"))
+(unless (f-dir? desktop-dirname)
+  (f-mkdir desktop-dirname))
 (setq-default desktop-base-file-name "emacs.desktop")
 (setq-default desktop-base-lock-name "emacs.desktop.lock")
 (setq desktop-path (list desktop-dirname))
 (desktop-save-mode t)
 
-(setq auto-save-list-file-prefix (concat emacs-persistence-directory "auto-save-list/saves-"))
+(setq auto-save-list-file-prefix (f-join kc/emacs-persistence-directory "auto-save-list/saves-"))
 (setq make-backup-files nil)
-(defconst eor/autosave-directory (f-join emacs-persistence-directory "autosave"))
-(unless (f-dir? eor/autosave-directory)
-  (make-directory eor/autosave-directory))
+(defconst autosave-directory (f-join kc/emacs-persistence-directory "autosave"))
+(unless (f-dir? autosave-directory)
+  (f-mkdir autosave-directory))
 (setq auto-save-file-name-transforms
-      `((".*" ,eor/autosave-directory t)))
-
-;; ;;
-;; ;; auto-save and auto-backup
-;; ;;
-;; (require 'desktop)
-;; (desktop-save-mode t)
-
-;; ;; (setq make-backup-files         nil) ; Don't want any backup files
-;; ;; (setq auto-save-list-file-name  nil) ; Don't want any .saves files
-;; ;; (setq auto-save-default         nil) ; Don't want any auto saving
-
-;; ;; Placing all files in one directory
-;; (setq backup-directory-alist
-;;       `((".*" . ,temporary-file-directory)))
-;; (setq auto-save-file-name-transforms
-;;       `((".*" ,temporary-file-directory t)))
+      `((".*" ,autosave-directory t)))
 
 ;;
 ;; Start server to allow connections from emacsclient
@@ -126,10 +120,10 @@
 ;;
 ;; log recent files (recentf-open-files will list them all)
 (recentf-mode t)
-(setq-default recentf-save-file (f-join emacs-persistence-directory "recentf"))
+(setq-default recentf-save-file (f-join kc/emacs-persistence-directory "recentf"))
 ;; highlight current line
 (global-hl-line-mode t)
-(setq-default savehist-file (f-join emacs-persistence-directory "minibuffer.history"))
+(setq-default savehist-file (f-join kc/emacs-persistence-directory "minibuffer.history"))
 ;; save minibuffer history
 (savehist-mode 1)
 ;; make indentation commands use space only (never tab character)
@@ -166,16 +160,20 @@
                   (end-of-line)
                   (point))))
     (comment-or-uncomment-region start end)))
-;;(global-set-key (kbd "M-'") 'comment-dwim)
-(global-set-key (kbd "M-'") 'comment-eclipse)
+;; (global-set-key (kbd "M-'") 'comment-dwim)
+(global-set-key (kbd "M-/") 'comment-eclipse)
+(global-set-key (kbd "M-'") 'ergoemacs-toggle-letter-case)
+(global-set-key (kbd "M-\"") 'ergoemacs-toggle-camel-case)
 
 ;; dark theme
 (load-theme 'tsdh-dark)
+
+;; turn off anti-aliasing
+(setq mac-allow-anti-aliasing nil)
+
 ;; smaller font
-;; (set-frame-font "Terminus-10")
-(set-face-attribute 'default nil :font "Terminus-10" )
-(set-frame-font "Terminus-10" nil t)
-;;(set-face-attribute 'default nil :height 100)
+;; (set-face-attribute 'default nil :font "-*-Terminus-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1" )
+;; (set-frame-font "-*-Terminus-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1" nil t)
 
 ;;
 (require 'ergoemacs-mode)
@@ -183,13 +181,27 @@
 (setq ergoemacs-keyboard-layout "us")
 (ergoemacs-mode 1)
 
+;; ⌘ key
+;; (setq mac-option-key-is-meta nil
+;;       mac-command-key-is-meta t
+;;       mac-command-modifier 'meta
+;;       mac-option-modifier 'super)
+
+;; set keys for Apple keyboard, for emacs in OS X
+(setq mac-option-key-is-meta nil)
+(setq mac-command-key-is-meta t)
+(setq mac-command-modifier 'meta) ; make cmd key do Meta
+(setq mac-option-modifier 'super) ; make opt key do Super
+(setq mac-control-modifier 'control) ; make Control key do Control
+(setq ns-function-modifier 'hyper)  ; make Fn key do Hyper
+
+
 ;; built-in
 (require 'bs)
 (setq bs-configurations
       '(("files" "^\\*scratch\\*" nil nil bs-visits-non-file bs-sort-buffer-interns-are-last)))
 
 (global-set-key (kbd "<f2>") 'bs-show)
-(add-to-list 'load-path "~/.emacs.d/plugins")
 
 ;;
 (require 'linum)
@@ -336,72 +348,33 @@ what diminished modes would be on the mode-line if they were still minor."
 ;; Flycheck
 ;;
 (add-hook 'after-init-hook #'global-flycheck-mode)
-(eval-after-load "flycheck" '(diminish 'flycheck-mode))
 
-(with-eval-after-load 'flycheck
- (flycheck-pos-tip-mode))
-
-(require 'flycheck-color-mode-line)
-(eval-after-load "flycheck"
-  '(add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode))
-
-(setq flycheck-highlighting-mode 'lines)
-
-;; Flycheck C++
-;; (require 'flycheck-google-cpplint)
-;; (setq-default flycheck-disabled-checkers
-;; 	      (append flycheck-disabled-checkers
-;; 		      '(c/c++-clang)))
-;; (eval-after-load 'flycheck
-;;   '(progn
-;;      (require 'flycheck-google-cpplint)
-;;      ;; Add Google C++ Style checker.
-;;      ;; In default, syntax checked by Clang and Cppcheck.
-;;      (flycheck-add-next-checker 'c/c++-gcc
-;;                                 '(warnings-only . c/c++-googlelint))))
-;; (eval-after-load 'flycheck
-;;   '(progn
-;;      ;; (require 'flycheck-google-cpplint)
-;;      ;; Add Google C++ Style checker.
-;;      ;; In default, syntax checked by Clang and Cppcheck.
-;;      (flycheck-add-next-checker 'c/c++-gcc
-;;                                 'c/c++-googlelint 'append)))
 (eval-after-load 'flycheck
   '(progn
-     (require 'flycheck-google-cpplint)
-     ;; Add Google C++ Style checker.
-     ;; In default, syntax checked by Clang and Cppcheck.
-     (flycheck-add-next-checker 'c/c++-cppcheck
-                                '(warning . c/c++-googlelint))
-     (setq-default flycheck-disabled-checkers
-                   (append flycheck-disabled-checkers
-                           '(c/c++-clang)))))
-
-(custom-set-variables
- '(flycheck-c/c++-googlelint-executable "/usr/local/bin/cpplint.py")
- ;; '(flycheck-googlelint-verbose "3")
- ;; '(flycheck-googlelint-root "/home/pavlov_k/projects/lms80/sandbox")
- '(flycheck-googlelint-root "/home/pavlov_k/projects/sandbox/part_and_composition")
- '(flycheck-googlelint-filter "-legal/copyright,-whitespace/braces,-whitespace/parens,-whitespace/newline,-whitespace/tab,-whitespace/indent")  ;; -readability/streams,-whitespace/operators,-legal/copyright,-whitespace,+whitespace/braces
- '(flycheck-googlelint-linelength "120"))
+	 (require 'flycheck-color-mode-line)
+	 (require 'flycheck-google-cpplint)
+	 (diminish 'flycheck-mode)
+	 (add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode)
+	 (flycheck-pos-tip-mode)
+	 (setq-default flycheck-c/c++-googlelint-executable (f-join kc/plugins-directory "cpplint.py")
+				   flycheck-disabled-checkers '(c/c++-clang c/c++-gcc)
+				   flycheck-highlighting-mode 'sexps
+				   flycheck-googlelint-verbose "3"
+				   flycheck-googlelint-root (f-full "~/projects/local/sandbox/dev/rule_selector")
+				   flycheck-googlelint-linelength "120"
+				   ;; flycheck-gcc-language-standard "c++11"
+				   flycheck-googlelint-filter "-legal/copyright,-whitespace/braces,-whitespace/parens,-whitespace/newline,-whitespace/tab,-whitespace/indent"
+				   )
+	 (flycheck-add-next-checker 'c/c++-cppcheck
+								'(warning . c/c++-googlelint))
+	 )
+  )
 
 ;; add include folders
 (add-hook 'c++-mode-hook
  (lambda ()
-
-  ;; ext
-  (add-to-list 'flycheck-gcc-include-path "/home/pavlov_k/projects/lms80/icap_server_rule_selector/obj/libs/contrib/boost/include")
-  (add-to-list 'flycheck-gcc-include-path "/home/pavlov_k/projects/lms80/icap_server_rule_selector/obj/libs/contrib/cascade/include")
-
-  ;; include
-  (add-to-list 'flycheck-gcc-include-path "/home/pavlov_k/projects/lms80/icap_server_rule_selector/include")
-  (add-to-list 'flycheck-gcc-include-path "/home/pavlov_k/projects/lms80/icap_server_rule_selector/include/rule_selector")
-  ;; src
-  (add-to-list 'flycheck-gcc-include-path "/home/pavlov_k/projects/lms80/icap_server_rule_selector")
-  (add-to-list 'flycheck-gcc-include-path "/home/pavlov_k/projects/lms80/icap_server_rule_selector/source/rule_selector")
-))
-;; c++11
-;;(add-hook 'c++-mode-hook (lambda () (setq flycheck-gcc-language-standard "c++11")))
+  (add-to-list 'flycheck-gcc-include-path "/usr/include/c++/4.2.1")
+  (add-to-list 'flycheck-gcc-include-path "/usr/local/Cellar/boost/1.63.0/include/boost")))
 
 ;; Flycheck Python Flake8
 (setq-default flycheck-flake8-maximum-line-length 120)
@@ -411,21 +384,6 @@ what diminished modes would be on the mode-line if they were still minor."
 ;;  flycheck-python-flake8-executable "~/projects/Crawler/env/bin/flake8"
 ;;  python-check-command "~/projects/Crawler/env/bin/pyflakes"
 ;;  python-shell-interpreter "~/projects/Crawler/env/bin/python")
-
-;;;;
-;;;; FillColumnIndicator
-;;;;
-;;(require 'fill-column-indicator)
-;;(setq fci-rule-column 120)
-;;(setq fci-rule-width 2)
-;;(setq fci-rule-color "darkgrey")
-;;(define-globalized-minor-mode global-fci-mode fci-mode
-;;  (lambda ()
-;;    (if (and
-;;         (not (string-match "^\*.*\*$" (buffer-name)))
-;;         (not (eq major-mode 'dired-mode)))
-;;        (fci-mode 1))))
-;;(global-fci-mode 1)
 
 ;;
 ;; The silver searcher
@@ -459,7 +417,8 @@ what diminished modes would be on the mode-line if they were still minor."
 (eval-after-load "company"
  '(progn
    (add-to-list 'company-backends 'company-c-headers)
-   (add-to-list 'company-backends 'company-anaconda)))
+   ;; (add-to-list 'company-backends 'company-anaconda)
+   ))
 (with-eval-after-load 'company
   (company-flx-mode +1)
   (diminish 'company-mode))
@@ -510,14 +469,13 @@ what diminished modes would be on the mode-line if they were still minor."
 ;; C++
 ;;
 (defun company-c-header-init ()
-  (add-to-list 'company-c-headers-path-system "/usr/include/c++/5.2.1/")
-  (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/obj/libs/contrib/boost/include")
-  (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/obj/libs/contrib/cascade/include")
+  (add-to-list 'company-c-headers-path-system "/usr/include/c++/4.2.1")
+  (add-to-list 'company-c-headers-path-user "/usr/local/Cellar/boost/1.63.0/include/boost")
   ;;
-  (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/include")
-  (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/include/rule_selector")
-  (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector")
-  (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/source/rule_selector")
+  ;; (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/include")
+  ;; (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/include/rule_selector")
+  ;; (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector")
+  ;; (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/source/rule_selector")
 )
 
 (add-hook 'c-mode-hook 'company-c-header-init)
@@ -592,6 +550,10 @@ what diminished modes would be on the mode-line if they were still minor."
 ;;
 (load-file "~/.emacs.d/plugins/robot-mode.el")
 (add-to-list 'auto-mode-alist '("\\.robot\\'" . robot-mode))
+
+
+
+
 
 ;;
 ;; Switching layout when entering commands
