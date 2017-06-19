@@ -15,11 +15,6 @@
 ;; And maximize window
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
-
-(setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
-(setq exec-path (append exec-path '("/usr/local/bin")))
-
-
 ;;
 ;; package.el
 ;;
@@ -168,33 +163,15 @@
 ;; dark theme
 (load-theme 'tsdh-dark)
 
-;; turn off anti-aliasing
-(setq mac-allow-anti-aliasing nil)
-
 ;; smaller font
-;; (set-face-attribute 'default nil :font "-*-Terminus-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1" )
-;; (set-frame-font "-*-Terminus-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1" nil t)
+(set-face-attribute 'default nil :font "Terminus-10" )
+(set-frame-font "Terminus-10" nil t)
 
 ;;
 (require 'ergoemacs-mode)
 (setq ergoemacs-theme nil)
 (setq ergoemacs-keyboard-layout "us")
 (ergoemacs-mode 1)
-
-;; ⌘ key
-;; (setq mac-option-key-is-meta nil
-;;       mac-command-key-is-meta t
-;;       mac-command-modifier 'meta
-;;       mac-option-modifier 'super)
-
-;; set keys for Apple keyboard, for emacs in OS X
-(setq mac-option-key-is-meta nil)
-(setq mac-command-key-is-meta t)
-(setq mac-command-modifier 'meta) ; make cmd key do Meta
-(setq mac-option-modifier 'super) ; make opt key do Super
-(setq mac-control-modifier 'control) ; make Control key do Control
-(setq ns-function-modifier 'hyper)  ; make Fn key do Hyper
-
 
 ;; built-in
 (require 'bs)
@@ -361,9 +338,9 @@ what diminished modes would be on the mode-line if they were still minor."
 				   flycheck-highlighting-mode 'sexps
 				   flycheck-googlelint-verbose "3"
 				   flycheck-googlelint-root (f-full "~/projects/local/sandbox/dev/rule_selector")
+				   flycheck-googlelint-filter "-legal/copyright,-whitespace/braces,-whitespace/parens,-whitespace/newline,-whitespace/tab,-whitespace/indent,-build/header_guard,-whitespace/blank_line,-build/include"
 				   flycheck-googlelint-linelength "120"
 				   ;; flycheck-gcc-language-standard "c++11"
-				   flycheck-googlelint-filter "-legal/copyright,-whitespace/braces,-whitespace/parens,-whitespace/newline,-whitespace/tab,-whitespace/indent"
 				   )
 	 (flycheck-add-next-checker 'c/c++-cppcheck
 								'(warning . c/c++-googlelint))
@@ -373,17 +350,12 @@ what diminished modes would be on the mode-line if they were still minor."
 ;; add include folders
 (add-hook 'c++-mode-hook
  (lambda ()
-  (add-to-list 'flycheck-gcc-include-path "/usr/include/c++/4.2.1")
-  (add-to-list 'flycheck-gcc-include-path "/usr/local/Cellar/boost/1.63.0/include/boost")))
+  (add-to-list 'flycheck-gcc-include-path (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/boost"))
+  (add-to-list 'flycheck-gcc-include-path (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/cascade/include"))
+  ))
 
 ;; Flycheck Python Flake8
 (setq-default flycheck-flake8-maximum-line-length 120)
-
-;; for virtualenv
-;; (setq
-;;  flycheck-python-flake8-executable "~/projects/Crawler/env/bin/flake8"
-;;  python-check-command "~/projects/Crawler/env/bin/pyflakes"
-;;  python-shell-interpreter "~/projects/Crawler/env/bin/python")
 
 ;;
 ;; The silver searcher
@@ -461,7 +433,8 @@ what diminished modes would be on the mode-line if they were still minor."
   (define-key yas-minor-mode-map (kbd "<tab>") 'tab-indent-or-complete)
   (define-key yas-minor-mode-map (kbd "TAB") 'tab-indent-or-complete)
   (define-key company-active-map [tab] 'tab-indent-or-complete)
-  (define-key company-active-map (kbd "TAB") 'tab-indent-or-complete))
+  (define-key company-active-map (kbd "TAB") 'tab-indent-or-complete)
+)
 
 (add-hook 'company-mode-hook 'bind-tab-properly)
 
@@ -469,14 +442,10 @@ what diminished modes would be on the mode-line if they were still minor."
 ;; C++
 ;;
 (defun company-c-header-init ()
-  (add-to-list 'company-c-headers-path-system "/usr/include/c++/4.2.1")
-  (add-to-list 'company-c-headers-path-user "/usr/local/Cellar/boost/1.63.0/include/boost")
-  ;;
-  ;; (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/include")
-  ;; (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/include/rule_selector")
-  ;; (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector")
-  ;; (add-to-list 'company-c-headers-path-user "/home/pavlov_k/projects/lms80/icap_server_rule_selector/source/rule_selector")
-)
+  (add-to-list 'company-c-headers-path-system "/usr/include/c++/5.2.1/")
+  (add-to-list 'company-c-headers-path-user (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/boost"))
+  (add-to-list 'company-c-headers-path-user (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/cascade/include"))
+  )
 
 (add-hook 'c-mode-hook 'company-c-header-init)
 (add-hook 'c++-mode-hook 'company-c-header-init)
@@ -493,7 +462,6 @@ what diminished modes would be on the mode-line if they were still minor."
  (global-set-key (kbd "<f5>") 'recompile))
 (global-set-key (kbd "<f5>") 'kc-convenient-compile)
 
-(add-to-list 'load-path "~/.emacs.d/plugins/")
 ;; Tabs Instead of Spaces
 (require 'google-c-style)
 (add-hook 'c-mode-common-hook 'google-set-c-style)
@@ -548,7 +516,7 @@ what diminished modes would be on the mode-line if they were still minor."
 ;;
 ;; Robot mode (https://github.com/sakari/robot-mode)
 ;;
-(load-file "~/.emacs.d/plugins/robot-mode.el")
+(load-file (f-join kc/plugins-directory "robot-mode.el"))
 (add-to-list 'auto-mode-alist '("\\.robot\\'" . robot-mode))
 
 
