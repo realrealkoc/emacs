@@ -157,9 +157,12 @@
                   (goto-char (region-end))
                   (end-of-line)
                   (point))))
-    (comment-or-uncomment-region start end)))
-;; (global-set-key (kbd "M-'") 'comment-dwim)
+    (comment-or-uncomment-region start end)
+    ))
+
 (global-set-key (kbd "M-/") 'comment-eclipse)
+
+(global-unset-key (kbd "M-'"))
 
 (global-set-key (kbd "M-[") 'ergoemacs-toggle-camel-case)
 (global-set-key (kbd "M-]") 'ergoemacs-toggle-letter-case)
