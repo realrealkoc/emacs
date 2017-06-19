@@ -140,7 +140,10 @@
 ;; delete trailing spaces before saving
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
-;; comment
+
+;;
+;; comment block (for normal people)
+;;
 (defun comment-eclipse ()
   (interactive)
   (let ((start (line-beginning-position))
@@ -157,10 +160,14 @@
     (comment-or-uncomment-region start end)))
 ;; (global-set-key (kbd "M-'") 'comment-dwim)
 (global-set-key (kbd "M-/") 'comment-eclipse)
-(global-set-key (kbd "M-'") 'ergoemacs-toggle-letter-case)
-(global-set-key (kbd "M-\"") 'ergoemacs-toggle-camel-case)
 
+(global-set-key (kbd "M-[") 'ergoemacs-toggle-camel-case)
+(global-set-key (kbd "M-]") 'ergoemacs-toggle-letter-case)
+
+
+;;
 ;; dark theme
+;;
 (load-theme 'tsdh-dark)
 
 ;; smaller font
