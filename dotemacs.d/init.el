@@ -207,12 +207,11 @@
 (setq ibuffer-show-empty-filter-groups nil)
 (setq ibuffer-saved-filter-groups
       '(("projects"
-         ;; my projects
-         ("icap_server/rule_selector"  (filename . ".*/icap_server/rule_selector/.*"))
-         ("lms80/sandbox"     (filename . ".*/lms80/sandbox/.*"))
-         ("lms80/*"           (filename . ".*/projects/lms80/.*"))
-         ("depot/*"           (filename . ".*/depot/*"))
-         ("local/sandbox"     (filename . ".*/local/sandbox/.*"))
+
+         ("development"  (filename . ".*/projects/development/.*"))
+         ("depot"  (filename . ".*/projects/depot/.*"))
+         ("coretech"  (filename . ".*/projects/coretech/.*"))
+         ("sandbox"     (filename . ".*/local/sandbox/.*"))
          ("local/*"           (filename . ".*/local/.*"))
          ("projects/*"        (filename . ".*/projects/.*"))
 
