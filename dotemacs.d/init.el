@@ -218,12 +218,15 @@
 (setq ibuffer-saved-filter-groups
       '(("projects"
 
-         ("development"  (filename . ".*/projects/development/.*"))
-         ("depot"  (filename . ".*/projects/depot/.*"))
-         ("coretech"  (filename . ".*/projects/coretech/.*"))
-         ("sandbox"     (filename . ".*/local/sandbox/.*"))
-         ("local/*"           (filename . ".*/local/.*"))
-         ("projects/*"        (filename . ".*/projects/.*"))
+         ("p4"          (name . "^\\*P4"))
+
+         ;; source
+         ("development/*"  (filename . "/projects/development/"))
+         ("depot/*"  (filename . "/projects/depot/"))
+         ("coretech/*"  (filename . "/projects/coretech/"))
+         ("sandbox/*"     (filename . "/local/sandbox/"))
+         ("local/*"           (filename . "/local/"))
+         ("projects/*"        (filename . "/projects/"))
 
          ("emacs" (or
                         (name . "^\\*scratch\\*$")
@@ -233,6 +236,7 @@
                         (filename . "emacs-config")
                         (filename . ".*/.*.el$")))
          ;; other stuff
+         ("ag"          (name . "^\\*ag"))
          ("dired"       (mode . dired-mode))
          ("log$"        (filename . ".*\.log$"))
          ("*.*"         (name . "\*.*\*"))
@@ -343,13 +347,13 @@ what diminished modes would be on the mode-line if they were still minor."
 	 (add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode)
 	 (flycheck-pos-tip-mode)
 	 (setq-default flycheck-c/c++-googlelint-executable (f-join kc/plugins-directory "cpplint.py")
-				   flycheck-disabled-checkers '(c/c++-clang c/c++-gcc)
+				   flycheck-disabled-checkers '(c/c++-clang)
 				   flycheck-highlighting-mode 'sexps
 				   flycheck-googlelint-verbose "3"
-				   flycheck-googlelint-root (f-full "~/projects/local/sandbox/dev/rule_selector")
+				   flycheck-googlelint-root (f-full "~/projects/development/licenser/source")
 				   flycheck-googlelint-filter "-legal/copyright,-whitespace/braces,-whitespace/parens,-whitespace/newline,-whitespace/tab,-whitespace/indent,-build/header_guard,-whitespace/blank_line,-build/include"
 				   flycheck-googlelint-linelength "120"
-				   ;; flycheck-gcc-language-standard "c++11"
+				   flycheck-gcc-language-standard "c++14"
 				   )
 	 (flycheck-add-next-checker 'c/c++-cppcheck
 								'(warning . c/c++-googlelint))
@@ -361,6 +365,7 @@ what diminished modes would be on the mode-line if they were still minor."
  (lambda ()
   (add-to-list 'flycheck-gcc-include-path (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/boost"))
   (add-to-list 'flycheck-gcc-include-path (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/cascade/include"))
+  (add-to-list 'flycheck-gcc-include-path (f-full "~/projects/development/licenser/obj/libs/contrib/cascade/include"))
   ))
 
 ;; Flycheck Python Flake8
