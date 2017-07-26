@@ -467,6 +467,7 @@ what diminished modes would be on the mode-line if they were still minor."
 (add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
 (add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-mode))
 
+
 (global-set-key (kbd "<f5>") 'recompile)
 (global-set-key (kbd "C-<f5>") 'compile)
 
@@ -475,6 +476,11 @@ what diminished modes would be on the mode-line if they were still minor."
  (call-interactively 'compile)
  (global-set-key (kbd "<f5>") 'recompile))
 (global-set-key (kbd "<f5>") 'kc-convenient-compile)
+
+;; usefull compilance view
+(setq compilation-scroll-output t)
+(setq-default display-buffer-reuse-frames t)
+
 
 ;; Tabs Instead of Spaces
 (require 'google-c-style)
