@@ -174,8 +174,10 @@
 (load-theme 'tsdh-dark)
 
 ;; smaller font
-(set-face-attribute 'default nil :font "Terminus-10" )
-(set-frame-font "Terminus-10" nil t)
+;; (set-face-attribute 'default nil :font "Terminus-10" )
+;; (set-frame-font "Terminus-10" nil t)
+(set-frame-font "-xos4-terminus-medium-r-normal--20-*-*-*-*-*-*-*" nil t)
+
 
 ;;
 (require 'ergoemacs-mode)
