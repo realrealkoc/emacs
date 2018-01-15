@@ -4,6 +4,9 @@
 
 ;;; Code:
 ;; Do not show useless buffers on startup
+
+(package-initialize)
+
 (setq inhibit-splash-screen t
     inhibit-startup-echo-area-message t)
 
@@ -28,28 +31,33 @@
 
 (defvar kc/required-packages
   (list 'ag
-    'anaconda-mode
+    'ergoemacs-mode
+    'ggtags
+    'async
+    'popup
+    'cmake-mode
     'company
     'company-c-headers
-    'company-anaconda
     'company-flx
-    'company-quickhelp
     'diminish
+    'elpy
     'f
     'flx
     'flx-ido
     'flycheck
     'flycheck-color-mode-line
     'flycheck-pos-tip
-    'ido-ubiquitous
+    'ido-completing-read+
     'python-mode
     'p4
     's
     'smex
-    'yasnippet
-    'ergoemacs-mode
-    'linum
     'sr-speedbar
+    'yasnippet
+    'yasnippet-snippets
+    'lua-mode
+    'nginx-mode
+    'linum
     'minimap)
   "Libraries that should be installed by default.")
 
@@ -129,6 +137,9 @@
 (setq-default c-basic-offset 4)
 ;; display tab symbol
 (standard-display-ascii ?\t "→\t")
+;; (standard-display-ascii ?\r "^M")
+;; (standard-display-ascii ?\n "^J\n")
+
 ;; Show column numbers
 (column-number-mode t)
 ;; And matching parens
@@ -174,16 +185,53 @@
 (load-theme 'tsdh-dark)
 
 ;; smaller font
-;; (set-face-attribute 'default nil :font "Terminus-10" )
-;; (set-frame-font "Terminus-10" nil t)
 (set-frame-font "-xos4-terminus-medium-r-normal--20-*-*-*-*-*-*-*" nil t)
-
+;;
 
 ;;
 (require 'ergoemacs-mode)
 (setq ergoemacs-theme nil)
 (setq ergoemacs-keyboard-layout "us")
 (ergoemacs-mode 1)
+
+
+;;
+;; (require 'helm)
+;; (require 'helm-config)
+;; (helm-mode 1)
+
+
+;;
+(require 'nginx-mode)
+
+
+;; find
+(defun xah-search-current-word ()
+  "Call `isearch' on current word or text selection.
+“word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
+URL `http://ergoemacs.org/emacs/modernization_isearch.html'
+Version 2015-04-09"
+  (interactive)
+  (let ( $p1 $p2 )
+    (if (use-region-p)
+        (progn
+          (setq $p1 (region-beginning))
+          (setq $p2 (region-end)))
+      (save-excursion
+        (skip-chars-backward "-_A-Za-z0-9")
+        (setq $p1 (point))
+        (right-char)
+        (skip-chars-forward "-_A-Za-z0-9")
+        (setq $p2 (point))))
+    (setq mark-active nil)
+    (when (< $p1 (point))
+      (goto-char $p1))
+    (isearch-mode t)
+    (isearch-yank-string (buffer-substring-no-properties $p1 $p2))))
+
+(global-set-key (kbd "s-y") 'xah-search-current-word)
+
+
 
 ;; built-in
 (require 'bs)
@@ -261,9 +309,8 @@
 ;;(flx-ido-mode 1)
 ;; disable ido faces to see flx highlights.
 ;(setq ido-use-faces nil)
-
-;; Ido ubiquitous
-(require 'ido-ubiquitous)
+;; ido ubiquitous
+(require 'ido-completing-read+)
 (ido-ubiquitous-mode 1)
 
 ;; Mode-line
@@ -349,29 +396,29 @@ what diminished modes would be on the mode-line if they were still minor."
 	 (add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode)
 	 (flycheck-pos-tip-mode)
 	 (setq-default flycheck-c/c++-googlelint-executable (f-join kc/plugins-directory "cpplint.py")
+				   flycheck-python-flake8-executable (f-full "~/.local/bin/flake8")
+				   flycheck-python-pylint-executable (f-full "~/.local/bin/pylint")
 				   flycheck-disabled-checkers '(c/c++-clang)
 				   flycheck-highlighting-mode 'sexps
 				   flycheck-googlelint-verbose "3"
-				   flycheck-googlelint-root (f-full "~/projects/development/licenser/source")
 				   flycheck-googlelint-filter "-legal/copyright,-whitespace/braces,-whitespace/parens,-whitespace/newline,-whitespace/tab,-whitespace/indent,-build/header_guard,-whitespace/blank_line,-build/include"
 				   flycheck-googlelint-linelength "120"
 				   flycheck-gcc-language-standard "c++14"
+				   flycheck-python-pycompile-executable "python3"
 				   )
 	 (flycheck-add-next-checker 'c/c++-cppcheck
 								'(warning . c/c++-googlelint))
 	 )
   )
 
+
 ;; add include folders
 (add-hook 'c++-mode-hook
  (lambda ()
-  (add-to-list 'flycheck-gcc-include-path (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/boost"))
-  (add-to-list 'flycheck-gcc-include-path (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/cascade/include"))
-  (add-to-list 'flycheck-gcc-include-path (f-full "~/projects/development/licenser/obj/libs/contrib/cascade/include"))
+  (add-to-list 'flycheck-gcc-include-path "/usr/include/c++/5.4.0")
+  (add-to-list 'flycheck-gcc-include-path "/usr/include/boost")
   ))
 
-;; Flycheck Python Flake8
-(setq-default flycheck-flake8-maximum-line-length 120)
 
 ;;
 ;; The silver searcher
@@ -385,82 +432,68 @@ what diminished modes would be on the mode-line if they were still minor."
 ;;
 ;; Yasnippet
 ;;
+(require 'yasnippet)
 (yas-global-mode 1)
 (diminish 'yas-minor-mode)
+
+
+;;
+;; Perl
+;; use cperl-mode instead of perl-mode
+;;
+(setq auto-mode-alist (rassq-delete-all 'perl-mode auto-mode-alist))
+(add-to-list 'auto-mode-alist '("\\.\\(p\\([lm]\\)\\)\\'" . cperl-mode))
+
+(setq interpreter-mode-alist (rassq-delete-all 'perl-mode interpreter-mode-alist))
+(add-to-list 'interpreter-mode-alist '("perl" . cperl-mode))
+(add-to-list 'interpreter-mode-alist '("perl5" . cperl-mode))
+(add-to-list 'interpreter-mode-alist '("miniperl" . cperl-mode))
+
 
 ;;
 ;; Python
 ;;
 (require 'python)
-(add-hook 'python-mode-hook 'anaconda-mode)
-(add-hook 'python-mode-hook 'eldoc-mode)
-(add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
-;; (add-to-list 'interpreter-mode-alist '("python2" . python-mode))
+;; (require 'elpy)
+;; (add-hook 'python-mode-hook
+;;           #'(lambda () (elpy-enable)))
 
-;;
+
 ;; Company mode
-;;
 (require 'company)
 (add-hook 'after-init-hook 'global-company-mode)
 (eval-after-load "company"
  '(progn
-   (add-to-list 'company-backends 'company-c-headers)
-   ;; (add-to-list 'company-backends 'company-anaconda)
+   (add-to-list 'company-backends '(company-gtags company-c-headers elpy-company-backend company-yasnippet))
    ))
+
 (with-eval-after-load 'company
+  (setq-default company-minimum-prefix-length 1)
+  (setq company-idle-delay 0)
   (company-flx-mode +1)
   (diminish 'company-mode))
 
-(setq company-minimum-prefix-length 1)
-(setq company-idle-delay 0)
 
-(company-quickhelp-mode 1)
+(define-key company-active-map [escape] 'company-abort)
+(define-key company-active-map (kbd "M-i") 'company-select-previous)
+(define-key company-active-map (kbd "M-k") 'company-select-next)
 
-;;
-;; Fix <TAB> for YASnippet + Company
-;; http://thrownforaloop.com/posts/emacs-configuration/
-;;
-(defun check-expansion ()
-  (save-excursion
-    (if (looking-at "\\_>") t
-      (backward-char 1)
-      (if (looking-at "\\.") t
-        (backward-char 1)
-        (if (looking-at "->") t nil)))))
-
-(defun do-yas-expand ()
-  (let ((yas/fallback-behavior 'return-nil))
-    (yas/expand)))
-
-(defun tab-indent-or-complete ()
-  (interactive)
-  (if (minibufferp)
-      (minibuffer-complete)
-    (if (or (not yas/minor-mode)
-            (null (do-yas-expand)))
-        (if (check-expansion)
-            (company-complete-common)
-          (indent-for-tab-command)))))
-
-(defun bind-tab-properly ()
-  "Binds tab to tab-indent-or-complete, overwritting yas and company bindings"
-  (interactive)
-  ;;overwrite yas and company tab mappings
-  (define-key yas-minor-mode-map (kbd "<tab>") 'tab-indent-or-complete)
-  (define-key yas-minor-mode-map (kbd "TAB") 'tab-indent-or-complete)
-  (define-key company-active-map [tab] 'tab-indent-or-complete)
-  (define-key company-active-map (kbd "TAB") 'tab-indent-or-complete)
-)
-
-(add-hook 'company-mode-hook 'bind-tab-properly)
 
 ;;
 ;; C++
 ;;
+(defun ggtags-init ()
+  (ggtags-mode 1)
+  (ggtags-setup-highlight-tag-at-point ggtags-highlight-tag)
+  )
+
+(add-hook 'c-mode-hook 'ggtags)
+(add-hook 'c++-mode-hook 'ggtags)
+
+
 (defun company-c-header-init ()
-  (add-to-list 'company-c-headers-path-system "/usr/include/c++/5.2.1/")
-  (add-to-list 'company-c-headers-path-user (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/boost"))
-  (add-to-list 'company-c-headers-path-user (f-full "~/projects/local/sandbox/sence/obj/libs/contrib/cascade/include"))
+  (add-to-list 'company-c-headers-path-system "/usr/include/c++/5.4.0/")
+  (add-to-list 'company-c-headers-path-system "/usr/include/boost/")
   )
 
 (add-hook 'c-mode-hook 'company-c-header-init)
@@ -488,6 +521,15 @@ what diminished modes would be on the mode-line if they were still minor."
 (require 'google-c-style)
 (add-hook 'c-mode-common-hook 'google-set-c-style)
 (add-hook 'c-mode-common-hook 'google-make-newline-indent)
+
+
+; Add cmake listfile names to the mode list.
+(setq auto-mode-alist
+  (append
+  '(("CMakeLists\\.txt\\'" . cmake-mode))
+  '(("\\.cmake\\'" . cmake-mode))
+  auto-mode-alist))
+
 
 ;;
 ;; Debugging
@@ -540,9 +582,6 @@ what diminished modes would be on the mode-line if they were still minor."
 ;;
 (load-file (f-join kc/plugins-directory "robot-mode.el"))
 (add-to-list 'auto-mode-alist '("\\.robot\\'" . robot-mode))
-
-
-
 
 
 ;;
