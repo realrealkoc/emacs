@@ -196,7 +196,7 @@
 
 
 ;;
-;; (require 'helm)
+;; (add-to-list 'load-path (f-join kc/plugins-directory "helm-2.8.7"))
 ;; (require 'helm-config)
 ;; (helm-mode 1)
 
@@ -454,9 +454,13 @@ what diminished modes would be on the mode-line if they were still minor."
 ;; Python
 ;;
 (require 'python)
-;; (require 'elpy)
-;; (add-hook 'python-mode-hook
-;;           #'(lambda () (elpy-enable)))
+(require 'elpy)
+(add-hook 'python-mode-hook
+ '(lambda ()
+  (elpy-enable)
+  (elpy-use-cpython "/usr/bin/python3")
+  (set (make-local-variable 'company-backends) '(elpy-company-backend company-yasnippet))
+ ))
 
 
 ;; Company mode
@@ -464,7 +468,8 @@ what diminished modes would be on the mode-line if they were still minor."
 (add-hook 'after-init-hook 'global-company-mode)
 (eval-after-load "company"
  '(progn
-   (add-to-list 'company-backends '(company-gtags company-c-headers elpy-company-backend company-yasnippet))
+   (setq company-backends (remove 'company-clang company-backends))
+   (add-to-list 'company-backends '(company-gtags company-c-headers company-yasnippet))
    ))
 
 (with-eval-after-load 'company
