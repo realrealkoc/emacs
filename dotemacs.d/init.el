@@ -31,12 +31,17 @@
 
 (defvar kc/required-packages
   (list 'ag
+    'use-package
+    'spaceline
+    'spacemacs-theme
+    'smex
     'ergoemacs-mode
-    'ggtags
-    'async
-    'popup
+    'irony
+    'irony-eldoc
     'cmake-mode
     'company
+    'company-irony
+    'company-irony-c-headers
     'company-c-headers
     'company-flx
     'diminish
@@ -45,13 +50,11 @@
     'flx
     'flx-ido
     'flycheck
-    'flycheck-color-mode-line
-    'flycheck-pos-tip
+    'flycheck-irony
     'ido-completing-read+
     'python-mode
     'p4
     's
-    'smex
     'sr-speedbar
     'yasnippet
     'yasnippet-snippets
@@ -182,23 +185,53 @@
 ;;
 ;; dark theme
 ;;
-(load-theme 'tsdh-dark)
+;; (load-theme 'tsdh-dark)
+;; (load-theme 'spacemacs-dark)
+;; (use-package spacemacs-theme
+;;   :ensure t
+;;   :init
+;;   (load-theme 'spacemacs-dark t)
+;;   (setq spacemacs-theme-org-agenda-height nil)
+;;   (setq spacemacs-theme-org-height nil))
+(load-theme 'spacemacs-dark t)
+(setq spacemacs-theme-org-agenda-height nil)
+(setq spacemacs-theme-org-height nil)
+
+;; set sizes here to stop spacemacs theme resizing these
+;; (set-face-attribute 'org-level-1 nil :height 1.0)
+;; (set-face-attribute 'org-level-2 nil :height 1.0)
+;; (set-face-attribute 'org-level-3 nil :height 1.0)
+;; (set-face-attribute 'org-scheduled-today nil :height 1.0)
+;; (set-face-attribute 'org-agenda-date-today nil :height 1.1)
+;; (set-face-attribute 'org-table nil :foreground "#008787")
+
+;; (use-package spaceline
+;;   :demand t
+;;   :init
+;;   (setq powerline-default-separator 'arrow-fade)
+;;   :config
+;;   (require 'spaceline-config)
+;;   (spaceline-spacemacs-theme))
+(setq powerline-default-separator 'arrow-fade)
+(require 'spaceline-config)
+(spaceline-spacemacs-theme)
+;; (spaceline-emacs-theme)
+
 
 ;; smaller font
-(set-frame-font "-xos4-terminus-medium-r-normal--20-*-*-*-*-*-*-*" nil t)
+;; (set-frame-font "-xos4-terminus-medium-r-normal--20-*-*-*-*-*-*-*" nil t)
 ;;
+;; (set-frame-font "Source Code Pro-13" nil t)
+(set-face-attribute 'default nil
+                    :family "Source Code Pro Light"
+                    :height 130
+                    :weight 'normal
+                    :width 'normal)
 
-;;
-(require 'ergoemacs-mode)
 (setq ergoemacs-theme nil)
 (setq ergoemacs-keyboard-layout "us")
+(require 'ergoemacs-mode)
 (ergoemacs-mode 1)
-
-
-;;
-;; (add-to-list 'load-path (f-join kc/plugins-directory "helm-2.8.7"))
-;; (require 'helm-config)
-;; (helm-mode 1)
 
 
 ;;
@@ -232,7 +265,6 @@ Version 2015-04-09"
 (global-set-key (kbd "s-y") 'xah-search-current-word)
 
 
-
 ;; built-in
 (require 'bs)
 (setq bs-configurations
@@ -240,12 +272,14 @@ Version 2015-04-09"
 
 (global-set-key (kbd "<f2>") 'bs-show)
 
+
 ;;
 (require 'linum)
 (setq linum-format "%d ")
 ;;(global-linum-mode 1)
 (defun toggle-global-linum-mode () (interactive) (if global-linum-mode (global-linum-mode -1) (global-linum-mode 1)))
 (global-set-key (kbd "s-L") 'toggle-global-linum-mode)
+
 
 ;;
 (require 'sr-speedbar)
@@ -255,10 +289,12 @@ Version 2015-04-09"
 (setq sr-speedbar-right-side nil) ; put on left side
 (setq sr-speedbar-auto-refresh nil)
 
+
 ;;
 (require 'minimap)
 (setq minimap-window-location 'right)
 (global-set-key (kbd "s-M") 'minimap-mode)
+
 
 ;; ibuffer
 (require 'ibuffer)
@@ -300,11 +336,9 @@ Version 2015-04-09"
 ;;
 ;; Ido
 ;;
-(require 'ido)
 (ido-mode 1)
 (setq ido-enable-flex-matching t)
 (ido-everywhere 1)
-;; flx completion
 ;;(require 'flx-ido)
 ;;(flx-ido-mode 1)
 ;; disable ido faces to see flx highlights.
@@ -313,40 +347,42 @@ Version 2015-04-09"
 (require 'ido-completing-read+)
 (ido-ubiquitous-mode 1)
 
-;; Mode-line
-(setq-default mode-line-format
- (list
-  "   "
-  ;; is this buffer read-only?
-  '(:eval (if buffer-read-only
-            (propertize "✎ "
-                        'face '(:foreground "red" :height 70)
-                        'help-echo "Buffer is read-only")
-            (propertize "✎ "
-                        'face '(:foreground "green" :height 70)
-                        'help-echo "Buffer is writable")))
-  ;; was this buffer modified since the last save?
-  '(:eval (if (buffer-modified-p)
-            (propertize "★ "
-                        'face '(:height 70 :foreground "red")
-                        'help-echo "Buffer has been modified")
-            (propertize "★ "
-                        'face '(:height 70 :foreground "green")
-                        'help-echo "Buffer is saved")))
-  "    "
-  ;; the buffer name; the file name as a tool tip
-  '(:eval (propertize "%b "
-                      'face '(:weight bold)
-                      'help-echo (buffer-file-name)))
-  "    "
-  mode-line-position
-  "    "
-  '(vc-mode vc-mode)
-  ))
+;; ;; Mode-line
+;; (setq-default mode-line-format
+;;  (list
+;;   "   "
+;;   ;; is this buffer read-only?
+;;   '(:eval (if buffer-read-only
+;;             (propertize "✎ "
+;;                         'face '(:foreground "red" :height 70)
+;;                         'help-echo "Buffer is read-only")
+;;             (propertize "✎ "
+;;                         'face '(:foreground "green" :height 70)
+;;                         'help-echo "Buffer is writable")))
+;;   ;; was this buffer modified since the last save?
+;;   '(:eval (if (buffer-modified-p)
+;;             (propertize "★ "
+;;                         'face '(:height 70 :foreground "red")
+;;                         'help-echo "Buffer has been modified")
+;;             (propertize "★ "
+;;                         'face '(:height 70 :foreground "green")
+;;                         'help-echo "Buffer is saved")))
+;;   "    "
+;;   ;; the buffer name; the file name as a tool tip
+;;   '(:eval (propertize "%b "
+;;                       'face '(:weight bold)
+;;                       'help-echo (buffer-file-name)))
+;;   "    "
+;;   mode-line-position
+;;   "    "
+;;   '(vc-mode vc-mode)
+;;   ))
+
 
 ;;
 ;; Diminish
 ;;
+
 (require 'diminish)
 (defun diminished-modes ()
   "Echo all active diminished or minor modes as if they were minor.
@@ -390,11 +426,9 @@ what diminished modes would be on the mode-line if they were still minor."
 
 (eval-after-load 'flycheck
   '(progn
-	 (require 'flycheck-color-mode-line)
 	 (require 'flycheck-google-cpplint)
 	 (diminish 'flycheck-mode)
-	 (add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode)
-	 (flycheck-pos-tip-mode)
+	 (add-hook 'flycheck-mode-hook #'flycheck-irony-setup)
 	 (setq-default flycheck-c/c++-googlelint-executable (f-join kc/plugins-directory "cpplint.py")
 				   flycheck-python-flake8-executable (f-full "~/.local/bin/flake8")
 				   flycheck-python-pylint-executable (f-full "~/.local/bin/pylint")
@@ -465,18 +499,21 @@ what diminished modes would be on the mode-line if they were still minor."
 
 ;; Company mode
 (require 'company)
+(require 'company-irony-c-headers)
 (add-hook 'after-init-hook 'global-company-mode)
 (eval-after-load "company"
  '(progn
    (setq company-backends (remove 'company-clang company-backends))
-   (add-to-list 'company-backends '(company-gtags company-c-headers company-yasnippet))
+   (setq company-backends (delete 'company-semantic company-backends))
+   (add-to-list 'company-backends '(company-irony company-irony-c-headers company-yasnippet))
    ))
 
 (with-eval-after-load 'company
   (setq-default company-minimum-prefix-length 1)
   (setq company-idle-delay 0)
   (company-flx-mode +1)
-  (diminish 'company-mode))
+  (diminish 'company-mode)
+)
 
 
 (define-key company-active-map [escape] 'company-abort)
@@ -487,22 +524,26 @@ what diminished modes would be on the mode-line if they were still minor."
 ;;
 ;; C++
 ;;
-(defun ggtags-init ()
-  (ggtags-mode 1)
-  (ggtags-setup-highlight-tag-at-point ggtags-highlight-tag)
-  )
 
-(add-hook 'c-mode-hook 'ggtags)
-(add-hook 'c++-mode-hook 'ggtags)
+(add-hook 'c++-mode-hook 'irony-mode)
+(add-hook 'c-mode-hook 'irony-mode)
 
+(defun my-irony-mode-hook ()
+  (define-key irony-mode-map [remap completion-at-point]
+    'irony-completion-at-point-async)
+  (define-key irony-mode-map [remap complete-symbol]
+    'irony-completion-at-point-async))
 
-(defun company-c-header-init ()
-  (add-to-list 'company-c-headers-path-system "/usr/include/c++/5.4.0/")
-  (add-to-list 'company-c-headers-path-system "/usr/include/boost/")
-  )
+(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+(add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)
 
-(add-hook 'c-mode-hook 'company-c-header-init)
-(add-hook 'c++-mode-hook 'company-c-header-init)
+;; (defun company-c-header-init ()
+;;   (add-to-list 'company-c-headers-path-system "/usr/include/c++/5.4.0/")
+;;   (add-to-list 'company-c-headers-path-system "/usr/include/boost/")
+;;   )
+
+;; (add-hook 'c-mode-hook 'company-c-header-init)
+;; (add-hook 'c++-mode-hook 'company-c-header-init)
 
 (add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
 (add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-mode))
@@ -535,47 +576,6 @@ what diminished modes would be on the mode-line if they were still minor."
   '(("\\.cmake\\'" . cmake-mode))
   auto-mode-alist))
 
-
-;;
-;; Debugging
-;;
-;; (http://kousik.blogspot.ru/2005/10/highlight-current-line-in-gdbemacs.html)
-;; + (https://www.emacswiki.org/emacs/DebuggingWithEmacs)
-(defvar gud-overlay
-  (let* ((ov (make-overlay (point-min) (point-min))))
-    (overlay-put ov 'face 'secondary-selection)
-    ov)
-  "Overlay variable for GUD highlighting.")
-
-(defadvice gud-display-line (after my-gud-highlight act)
-  "Highlight current line."
-  (let* ((ov gud-overlay)
-         (bf (gud-find-file true-file)))
-    (with-current-buffer bf
-      (move-overlay ov (line-beginning-position) (line-beginning-position 2)
-                    ;;(move-overlay ov (line-beginning-position) (line-end-position)
-                    (current-buffer)))))
-
-(defun gud-kill-buffer ()
-  (if (derived-mode-p 'gud-mode)
-      (delete-overlay gud-overlay)))
-
-(add-hook 'kill-buffer-hook 'gud-kill-buffer)
-
-;;
-;;; View tags other window
-;;
-(defun view-tag-other-window (tagname &optional next-p regexp-p)
-  "Same as `find-tag-other-window' but doesn't move the point"
-  (interactive (find-tag-interactive "View tag other window: "))
-  (let ((window (get-buffer-window)))
-    (find-tag-other-window tagname next-p regexp-p)
-    (recenter 0)
-    (select-window window)))
-
-;; (global-set-key (kbd "s-F") 'find-tag-other-window)
-;; (global-set-key (kbd "s-G") 'view-tag-other-window)
-;; (global-set-key (kbd "s-R") 'tags-query-replace)
 
 ;;
 ;; p4
