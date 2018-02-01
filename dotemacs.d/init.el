@@ -30,19 +30,20 @@
 (package-initialize)
 
 (defvar kc/required-packages
-  (list 'ag
+  (list
     'use-package
-    'spaceline
+    'ivy
     'spacemacs-theme
+    'spaceline
     'smex
     'ergoemacs-mode
     'irony
     'irony-eldoc
+    'ag
     'cmake-mode
     'company
     'company-irony
     'company-irony-c-headers
-    'company-c-headers
     'company-flx
     'diminish
     'elpy
@@ -70,14 +71,10 @@
       (message "Installing %s" (symbol-name package))
       (package-install package)))
 
-;;
 ;; Generally useful packages
-;;
 (require 'f)
 
-;;
 ;; Custom settings file
-;;
 (setq custom-file (f-join user-emacs-directory "emacs-custom.el"))
 (if (f-exists? custom-file)
     (load custom-file))
@@ -96,9 +93,7 @@
 (unless (f-dir? kc/emacs-persistence-directory)
   (f-mkdir kc/emacs-persistence-directory))
 
-;;
 ;; auto-save and auto-backup
-;;
 (require 'desktop)
 (setq-default desktop-dirname (f-join kc/emacs-persistence-directory "desktop"))
 (unless (f-dir? desktop-dirname)
@@ -116,14 +111,6 @@
 (setq auto-save-file-name-transforms
       `((".*" ,autosave-directory t)))
 
-;;
-;; Start server to allow connections from emacsclient
-;;
-(server-start)
-
-;;
-;; Other useful stuff
-;;
 ;; log recent files (recentf-open-files will list them all)
 (recentf-mode t)
 (setq-default recentf-save-file (f-join kc/emacs-persistence-directory "recentf"))
@@ -155,6 +142,32 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
 
+
+;;
+;; dark theme
+;;
+(load-theme 'spacemacs-dark t)
+(setq spacemacs-theme-org-agenda-height nil)
+(setq spacemacs-theme-org-height nil)
+
+(setq powerline-default-separator 'arrow-fade)
+(require 'spaceline-config)
+(spaceline-spacemacs-theme)
+
+;; (set-frame-font "-xos4-terminus-medium-r-normal--20-*-*-*-*-*-*-*" nil t)
+(set-face-attribute 'default nil
+                    :family "Source Code Pro"
+                    :height 130
+                    :weight 'normal
+                    :width 'normal)
+
+
+(setq ergoemacs-theme nil)
+(setq ergoemacs-keyboard-layout "us")
+(require 'ergoemacs-mode)
+(ergoemacs-mode 1)
+
+
 ;;
 ;; comment block (for normal people)
 ;;
@@ -180,62 +193,6 @@
 
 (global-set-key (kbd "M-[") 'ergoemacs-toggle-camel-case)
 (global-set-key (kbd "M-]") 'ergoemacs-toggle-letter-case)
-
-
-;;
-;; dark theme
-;;
-;; (load-theme 'tsdh-dark)
-;; (load-theme 'spacemacs-dark)
-;; (use-package spacemacs-theme
-;;   :ensure t
-;;   :init
-;;   (load-theme 'spacemacs-dark t)
-;;   (setq spacemacs-theme-org-agenda-height nil)
-;;   (setq spacemacs-theme-org-height nil))
-(load-theme 'spacemacs-dark t)
-(setq spacemacs-theme-org-agenda-height nil)
-(setq spacemacs-theme-org-height nil)
-
-;; set sizes here to stop spacemacs theme resizing these
-;; (set-face-attribute 'org-level-1 nil :height 1.0)
-;; (set-face-attribute 'org-level-2 nil :height 1.0)
-;; (set-face-attribute 'org-level-3 nil :height 1.0)
-;; (set-face-attribute 'org-scheduled-today nil :height 1.0)
-;; (set-face-attribute 'org-agenda-date-today nil :height 1.1)
-;; (set-face-attribute 'org-table nil :foreground "#008787")
-
-;; (use-package spaceline
-;;   :demand t
-;;   :init
-;;   (setq powerline-default-separator 'arrow-fade)
-;;   :config
-;;   (require 'spaceline-config)
-;;   (spaceline-spacemacs-theme))
-(setq powerline-default-separator 'arrow-fade)
-(require 'spaceline-config)
-(spaceline-spacemacs-theme)
-;; (spaceline-emacs-theme)
-
-
-;; smaller font
-;; (set-frame-font "-xos4-terminus-medium-r-normal--20-*-*-*-*-*-*-*" nil t)
-;;
-;; (set-frame-font "Source Code Pro-13" nil t)
-(set-face-attribute 'default nil
-                    :family "Source Code Pro Light"
-                    :height 130
-                    :weight 'normal
-                    :width 'normal)
-
-(setq ergoemacs-theme nil)
-(setq ergoemacs-keyboard-layout "us")
-(require 'ergoemacs-mode)
-(ergoemacs-mode 1)
-
-
-;;
-(require 'nginx-mode)
 
 
 ;; find
@@ -274,26 +231,12 @@ Version 2015-04-09"
 
 
 ;;
-(require 'linum)
-(setq linum-format "%d ")
-;;(global-linum-mode 1)
-(defun toggle-global-linum-mode () (interactive) (if global-linum-mode (global-linum-mode -1) (global-linum-mode 1)))
-(global-set-key (kbd "s-L") 'toggle-global-linum-mode)
-
-
-;;
 (require 'sr-speedbar)
 (global-set-key (kbd "<f12>") 'sr-speedbar-toggle)
 (setq speedbar-show-unknown-files t) ; show all files
 (setq speedbar-use-images nil) ; use text for buttons
 (setq sr-speedbar-right-side nil) ; put on left side
 (setq sr-speedbar-auto-refresh nil)
-
-
-;;
-(require 'minimap)
-(setq minimap-window-location 'right)
-(global-set-key (kbd "s-M") 'minimap-mode)
 
 
 ;; ibuffer
@@ -333,6 +276,25 @@ Version 2015-04-09"
              (add-to-list 'ibuffer-never-show-predicates "TAGS")
              (ibuffer-auto-mode 1)))
 
+
+;;
+;; The silver searcher
+;;
+(require 'ag)
+;; Rename ag buffers for easier access
+(defun ag/buffer-name (search-string directory regexp)
+  "Return a buffer name formatted according to ag.el conventions."
+  (format "*ag: %s (%s)*" search-string directory))
+
+
+;;
+;; Yasnippet
+;;
+(require 'yasnippet)
+(yas-global-mode 1)
+(diminish 'yas-minor-mode)
+
+
 ;;
 ;; Ido
 ;;
@@ -347,42 +309,10 @@ Version 2015-04-09"
 (require 'ido-completing-read+)
 (ido-ubiquitous-mode 1)
 
-;; ;; Mode-line
-;; (setq-default mode-line-format
-;;  (list
-;;   "   "
-;;   ;; is this buffer read-only?
-;;   '(:eval (if buffer-read-only
-;;             (propertize "✎ "
-;;                         'face '(:foreground "red" :height 70)
-;;                         'help-echo "Buffer is read-only")
-;;             (propertize "✎ "
-;;                         'face '(:foreground "green" :height 70)
-;;                         'help-echo "Buffer is writable")))
-;;   ;; was this buffer modified since the last save?
-;;   '(:eval (if (buffer-modified-p)
-;;             (propertize "★ "
-;;                         'face '(:height 70 :foreground "red")
-;;                         'help-echo "Buffer has been modified")
-;;             (propertize "★ "
-;;                         'face '(:height 70 :foreground "green")
-;;                         'help-echo "Buffer is saved")))
-;;   "    "
-;;   ;; the buffer name; the file name as a tool tip
-;;   '(:eval (propertize "%b "
-;;                       'face '(:weight bold)
-;;                       'help-echo (buffer-file-name)))
-;;   "    "
-;;   mode-line-position
-;;   "    "
-;;   '(vc-mode vc-mode)
-;;   ))
-
 
 ;;
 ;; Diminish
 ;;
-
 (require 'diminish)
 (defun diminished-modes ()
   "Echo all active diminished or minor modes as if they were minor.
@@ -419,6 +349,7 @@ what diminished modes would be on the mode-line if they were still minor."
       (callf substring message 1))
     (message "%s" message)))
 
+
 ;;
 ;; Flycheck
 ;;
@@ -446,42 +377,98 @@ what diminished modes would be on the mode-line if they were still minor."
   )
 
 
-;; add include folders
+;;
+;; Company mode
+;;
+(require 'company)
+(add-hook 'after-init-hook 'global-company-mode)
+(eval-after-load "company"
+ '(progn
+   (require 'company-irony)
+   (require 'company-irony-c-headers)
+   (require 'company-yasnippet)
+   (setq company-backends (remove 'company-semantic company-backends))
+   (setq company-backends (remove 'company-clang company-backends))
+   (add-to-list 'company-backends '(company-irony company-irony-c-headers company-yasnippet))
+))
+
+(with-eval-after-load 'company
+  (setq-default company-minimum-prefix-length 1)
+  (setq company-idle-delay 0)
+  (company-flx-mode +1)
+  (diminish 'company-mode)
+)
+
+
+(define-key company-active-map [escape] 'company-abort)
+(define-key company-active-map (kbd "M-i") 'company-select-previous)
+(define-key company-active-map (kbd "M-k") 'company-select-next)
+
+
+
+;;
+;; C++
+;;
 (add-hook 'c++-mode-hook
  (lambda ()
+  ;; M-a				c-beginning-of-statement
+  ;; M-e				c-end-of-statement
+  ;; M-j				c-indent-new-comment-line
+  ;; M-q				c-fill-paragraph
+  (local-unset-key (kbd "M-a"))
+  (local-unset-key (kbd "M-e"))
+  (local-unset-key (kbd "M-j"))
+  (local-unset-key (kbd "M-q"))
+
   (add-to-list 'flycheck-gcc-include-path "/usr/include/c++/5.4.0")
   (add-to-list 'flycheck-gcc-include-path "/usr/include/boost")
-  ))
+
+  (irony-mode t)
+
+))
 
 
-;;
-;; The silver searcher
-;;
-(require 'ag)
-;; Rename ag buffers for easier access
-(defun ag/buffer-name (search-string directory regexp)
-  "Return a buffer name formatted according to ag.el conventions."
-  (format "*ag: %s (%s)*" search-string directory))
+(defun kc-irony-mode-hook ()
+  (define-key irony-mode-map [remap completion-at-point] 'irony-completion-at-point-async)
+  (define-key irony-mode-map [remap complete-symbol] 'irony-completion-at-point-async)
+)
 
-;;
-;; Yasnippet
-;;
-(require 'yasnippet)
-(yas-global-mode 1)
-(diminish 'yas-minor-mode)
+(add-hook 'irony-mode-hook 'kc-irony-mode-hook)
+(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+(add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)
+(add-hook 'irony-mode-hook #'irony-eldoc)
+
+(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-mode))
 
 
-;;
-;; Perl
-;; use cperl-mode instead of perl-mode
-;;
-(setq auto-mode-alist (rassq-delete-all 'perl-mode auto-mode-alist))
-(add-to-list 'auto-mode-alist '("\\.\\(p\\([lm]\\)\\)\\'" . cperl-mode))
+(global-set-key (kbd "<f5>") 'recompile)
+(global-set-key (kbd "C-<f5>") 'compile)
 
-(setq interpreter-mode-alist (rassq-delete-all 'perl-mode interpreter-mode-alist))
-(add-to-list 'interpreter-mode-alist '("perl" . cperl-mode))
-(add-to-list 'interpreter-mode-alist '("perl5" . cperl-mode))
-(add-to-list 'interpreter-mode-alist '("miniperl" . cperl-mode))
+(defun kc-convenient-compile ()
+ (interactive)
+ (call-interactively 'compile)
+ (global-set-key (kbd "<f5>") 'recompile)
+ )
+
+(global-set-key (kbd "<f5>") 'kc-convenient-compile)
+
+;; usefull compilance view
+(setq compilation-scroll-output t)
+(setq-default display-buffer-reuse-frames t)
+
+;; Tabs Instead of Spaces
+(require 'google-c-style)
+(add-hook 'c-mode-common-hook 'google-set-c-style)
+(add-hook 'c-mode-common-hook 'google-make-newline-indent)
+
+; Add cmake listfile names to the mode list.
+(setq auto-mode-alist
+  (append
+  '(("CMakeLists\\.txt\\'" . cmake-mode))
+  '(("\\.cmake\\'" . cmake-mode))
+  auto-mode-alist))
+
 
 
 ;;
@@ -497,84 +484,19 @@ what diminished modes would be on the mode-line if they were still minor."
  ))
 
 
-;; Company mode
-(require 'company)
-(require 'company-irony-c-headers)
-(add-hook 'after-init-hook 'global-company-mode)
-(eval-after-load "company"
- '(progn
-   (setq company-backends (remove 'company-clang company-backends))
-   (setq company-backends (delete 'company-semantic company-backends))
-   (add-to-list 'company-backends '(company-irony company-irony-c-headers company-yasnippet))
-   ))
-
-(with-eval-after-load 'company
-  (setq-default company-minimum-prefix-length 1)
-  (setq company-idle-delay 0)
-  (company-flx-mode +1)
-  (diminish 'company-mode)
-)
-
-
-(define-key company-active-map [escape] 'company-abort)
-(define-key company-active-map (kbd "M-i") 'company-select-previous)
-(define-key company-active-map (kbd "M-k") 'company-select-next)
-
-
 ;;
-;; C++
+;; Perl
 ;;
 
-(add-hook 'c++-mode-hook 'irony-mode)
-(add-hook 'c-mode-hook 'irony-mode)
+;; use cperl-mode instead of perl-mode
+(setq auto-mode-alist (rassq-delete-all 'perl-mode auto-mode-alist))
+(add-to-list 'auto-mode-alist '("\\.\\(p\\([lm]\\)\\)\\'" . cperl-mode))
 
-(defun my-irony-mode-hook ()
-  (define-key irony-mode-map [remap completion-at-point]
-    'irony-completion-at-point-async)
-  (define-key irony-mode-map [remap complete-symbol]
-    'irony-completion-at-point-async))
+(setq interpreter-mode-alist (rassq-delete-all 'perl-mode interpreter-mode-alist))
+(add-to-list 'interpreter-mode-alist '("perl" . cperl-mode))
+(add-to-list 'interpreter-mode-alist '("perl5" . cperl-mode))
+(add-to-list 'interpreter-mode-alist '("miniperl" . cperl-mode))
 
-(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
-(add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)
-
-;; (defun company-c-header-init ()
-;;   (add-to-list 'company-c-headers-path-system "/usr/include/c++/5.4.0/")
-;;   (add-to-list 'company-c-headers-path-system "/usr/include/boost/")
-;;   )
-
-;; (add-hook 'c-mode-hook 'company-c-header-init)
-;; (add-hook 'c++-mode-hook 'company-c-header-init)
-
-(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
-(add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-mode))
-
-
-(global-set-key (kbd "<f5>") 'recompile)
-(global-set-key (kbd "C-<f5>") 'compile)
-
-(defun kc-convenient-compile ()
- (interactive)
- (call-interactively 'compile)
- (global-set-key (kbd "<f5>") 'recompile))
-(global-set-key (kbd "<f5>") 'kc-convenient-compile)
-
-;; usefull compilance view
-(setq compilation-scroll-output t)
-(setq-default display-buffer-reuse-frames t)
-
-
-;; Tabs Instead of Spaces
-(require 'google-c-style)
-(add-hook 'c-mode-common-hook 'google-set-c-style)
-(add-hook 'c-mode-common-hook 'google-make-newline-indent)
-
-
-; Add cmake listfile names to the mode list.
-(setq auto-mode-alist
-  (append
-  '(("CMakeLists\\.txt\\'" . cmake-mode))
-  '(("\\.cmake\\'" . cmake-mode))
-  auto-mode-alist))
 
 
 ;;
@@ -583,10 +505,14 @@ what diminished modes would be on the mode-line if they were still minor."
 (require 'p4)
 
 ;;
+(require 'nginx-mode)
+
+;;
 ;; Robot mode (https://github.com/sakari/robot-mode)
 ;;
 (load-file (f-join kc/plugins-directory "robot-mode.el"))
 (add-to-list 'auto-mode-alist '("\\.robot\\'" . robot-mode))
+
 
 
 ;;
