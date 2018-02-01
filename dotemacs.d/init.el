@@ -173,10 +173,11 @@
 ;;
 (global-set-key (kbd "C-S-r") 'revert-buffer)     ;; C-r
 
+(global-unset-key (kbd "M-'"))
+(global-set-key (kbd "M-[") 'ergoemacs-toggle-camel-case)
+(global-set-key (kbd "M-]") 'ergoemacs-toggle-letter-case)
 
-;;
 ;; comment block (for normal people)
-;;
 (defun comment-eclipse ()
   (interactive)
   (let ((start (line-beginning-position))
@@ -194,38 +195,6 @@
     ))
 
 (global-set-key (kbd "M-/") 'comment-eclipse)
-
-(global-unset-key (kbd "M-'"))
-
-(global-set-key (kbd "M-[") 'ergoemacs-toggle-camel-case)
-(global-set-key (kbd "M-]") 'ergoemacs-toggle-letter-case)
-
-
-;; find
-(defun xah-search-current-word ()
-  "Call `isearch' on current word or text selection.
-“word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
-URL `http://ergoemacs.org/emacs/modernization_isearch.html'
-Version 2015-04-09"
-  (interactive)
-  (let ( $p1 $p2 )
-    (if (use-region-p)
-        (progn
-          (setq $p1 (region-beginning))
-          (setq $p2 (region-end)))
-      (save-excursion
-        (skip-chars-backward "-_A-Za-z0-9")
-        (setq $p1 (point))
-        (right-char)
-        (skip-chars-forward "-_A-Za-z0-9")
-        (setq $p2 (point))))
-    (setq mark-active nil)
-    (when (< $p1 (point))
-      (goto-char $p1))
-    (isearch-mode t)
-    (isearch-yank-string (buffer-substring-no-properties $p1 $p2))))
-
-(global-set-key (kbd "s-y") 'xah-search-current-word)
 
 
 ;; built-in
@@ -245,7 +214,7 @@ Version 2015-04-09"
 (setq sr-speedbar-auto-refresh nil)
 
 
-;; ibuffer
+;;
 (require 'ibuffer)
 ;; (defalias 'list-buffers 'ibuffer)  ;; make ibuffer default
 (global-set-key (kbd "C-x C-b") 'ibuffer-other-window)
@@ -284,8 +253,6 @@ Version 2015-04-09"
 
 
 ;;
-;; The silver searcher
-;;
 (require 'ag)
 ;; Rename ag buffers for easier access
 (defun ag/buffer-name (search-string directory regexp)
@@ -314,14 +281,17 @@ Version 2015-04-09"
                   "^\\*Messages\\*$"
                   "^\\*Ibuffer\\*$"
                   "^\\*buffer-selection\\*$"
-                  "^\\**Flycheck error messages\\*$"
+                  "^\\*Flycheck error messages\\*$"
                   "^\\*Quail Completions\\*$"))
 
 (global-set-key (kbd "C-o") 'counsel-find-file)
 (global-set-key (kbd "C-b") 'ivy-switch-buffer)
 (global-set-key (kbd "M-y") 'swiper)
-(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "M-Y") 'swiper)
+(global-set-key (kbd "C-f") 'swiper)
+(global-set-key (kbd "M-a") 'counsel-M-x)
 (global-set-key (kbd "C-r") 'ivy-resume)
+(global-set-key (kbd "C-c C-o") 'ivy-occur)
 
 (global-set-key (kbd "<f1> f") 'counsel-describe-function)
 (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
@@ -340,7 +310,6 @@ Version 2015-04-09"
 (define-key ivy-minibuffer-map (kbd "C-x") nil)
 (define-key ivy-minibuffer-map (kbd "C-c") nil)
 (define-key ivy-minibuffer-map (kbd "C-v") nil)
-;; (global-set-key (kbd "C-c C-o") 'ivy-occur)
 
 
 ;;
@@ -432,11 +401,9 @@ what diminished modes would be on the mode-line if they were still minor."
   (diminish 'company-mode)
 )
 
-
 (define-key company-active-map [escape] 'company-abort)
 (define-key company-active-map (kbd "M-i") 'company-select-previous)
 (define-key company-active-map (kbd "M-k") 'company-select-next)
-
 
 
 ;;
@@ -457,27 +424,21 @@ what diminished modes would be on the mode-line if they were still minor."
  ))
 
 
+
 ;;
 ;; C++
 ;;
 (add-hook 'c++-mode-hook
  (lambda ()
-  ;; M-a				c-beginning-of-statement
-  ;; M-e				c-end-of-statement
-  ;; M-j				c-indent-new-comment-line
-  ;; M-q				c-fill-paragraph
+  (irony-mode t)
+  (add-to-list 'flycheck-gcc-include-path "/usr/include/c++/5.4.0")
+  (add-to-list 'flycheck-gcc-include-path "/usr/include/boost")
+
   (local-unset-key (kbd "M-a"))
   (local-unset-key (kbd "M-e"))
   (local-unset-key (kbd "M-j"))
   (local-unset-key (kbd "M-q"))
-
-  (add-to-list 'flycheck-gcc-include-path "/usr/include/c++/5.4.0")
-  (add-to-list 'flycheck-gcc-include-path "/usr/include/boost")
-
-  (irony-mode t)
-
 ))
-
 
 (defun kc-irony-mode-hook ()
   (define-key irony-mode-map [remap completion-at-point] 'irony-completion-at-point-async)
@@ -489,9 +450,10 @@ what diminished modes would be on the mode-line if they were still minor."
 (add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)
 (add-hook 'irony-mode-hook #'irony-eldoc)
 
-(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
-(add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-mode))
-
+;; Tabs Instead of Spaces
+(require 'google-c-style)
+(add-hook 'c-mode-common-hook 'google-set-c-style)
+(add-hook 'c-mode-common-hook 'google-make-newline-indent)
 
 (global-set-key (kbd "<f5>") 'recompile)
 (global-set-key (kbd "C-<f5>") 'compile)
@@ -508,10 +470,8 @@ what diminished modes would be on the mode-line if they were still minor."
 (setq compilation-scroll-output t)
 (setq-default display-buffer-reuse-frames t)
 
-;; Tabs Instead of Spaces
-(require 'google-c-style)
-(add-hook 'c-mode-common-hook 'google-set-c-style)
-(add-hook 'c-mode-common-hook 'google-make-newline-indent)
+(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-mode))
 
 ; Add cmake listfile names to the mode list.
 (setq auto-mode-alist
@@ -547,7 +507,6 @@ what diminished modes would be on the mode-line if they were still minor."
 (add-to-list 'interpreter-mode-alist '("perl" . cperl-mode))
 (add-to-list 'interpreter-mode-alist '("perl5" . cperl-mode))
 (add-to-list 'interpreter-mode-alist '("miniperl" . cperl-mode))
-
 
 
 ;;
