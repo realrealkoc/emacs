@@ -5,6 +5,8 @@
 ;;; Code:
 ;; Do not show useless buffers on startup
 
+;; (setq debug-on-error nil)
+
 (package-initialize)
 
 (setq inhibit-splash-screen t
@@ -31,15 +33,17 @@
 
 (defvar kc/required-packages
   (list
-    'use-package
+    'ag
+    'wgrep
     'ivy
+    'swiper
+    'counsel
     'spacemacs-theme
     'spaceline
     'smex
     'ergoemacs-mode
     'irony
     'irony-eldoc
-    'ag
     'cmake-mode
     'company
     'company-irony
@@ -49,10 +53,8 @@
     'elpy
     'f
     'flx
-    'flx-ido
     'flycheck
     'flycheck-irony
-    'ido-completing-read+
     'python-mode
     'p4
     's
@@ -60,9 +62,7 @@
     'yasnippet
     'yasnippet-snippets
     'lua-mode
-    'nginx-mode
-    'linum
-    'minimap)
+    'nginx-mode)
   "Libraries that should be installed by default.")
 
 (dolist (package kc/required-packages)
@@ -166,6 +166,12 @@
 (setq ergoemacs-keyboard-layout "us")
 (require 'ergoemacs-mode)
 (ergoemacs-mode 1)
+
+
+;;
+;; Common keys
+;;
+(global-set-key (kbd "C-S-r") 'revert-buffer)     ;; C-r
 
 
 ;;
@@ -296,18 +302,45 @@ Version 2015-04-09"
 
 
 ;;
-;; Ido
+;; Ivy
 ;;
-(ido-mode 1)
-(setq ido-enable-flex-matching t)
-(ido-everywhere 1)
-;;(require 'flx-ido)
-;;(flx-ido-mode 1)
-;; disable ido faces to see flx highlights.
-;(setq ido-use-faces nil)
-;; ido ubiquitous
-(require 'ido-completing-read+)
-(ido-ubiquitous-mode 1)
+(ivy-mode 1)
+
+(setq ivy-use-virtual-buffers t ; treat recentf, bookmarks as virtual buffers.
+        ivy-extra-directories nil ; remove . and .. directory.
+        ivy-count-format "")
+
+(setq ivy-ignore-buffers '("^\\*scratch\\*$"
+                  "^\\*Messages\\*$"
+                  "^\\*Ibuffer\\*$"
+                  "^\\*buffer-selection\\*$"
+                  "^\\**Flycheck error messages\\*$"
+                  "^\\*Quail Completions\\*$"))
+
+(global-set-key (kbd "C-o") 'counsel-find-file)
+(global-set-key (kbd "C-b") 'ivy-switch-buffer)
+(global-set-key (kbd "M-y") 'swiper)
+(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "C-r") 'ivy-resume)
+
+(global-set-key (kbd "<f1> f") 'counsel-describe-function)
+(global-set-key (kbd "<f1> v") 'counsel-describe-variable)
+(global-set-key (kbd "<f1> l") 'counsel-find-library)
+;; (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
+;; (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+;; (global-set-key (kbd "C-c g") 'counsel-git)
+;; (global-set-key (kbd "C-c j") 'counsel-git-grep)
+;; (global-set-key (kbd "C-c k") 'counsel-ag)
+;; (global-set-key (kbd "C-x l") 'counsel-locate)
+;; (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+(define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
+(define-key ivy-minibuffer-map (kbd "M-i") nil)
+(define-key ivy-minibuffer-map (kbd "M-k") nil)
+(define-key ivy-minibuffer-map (kbd "C-z") nil)
+(define-key ivy-minibuffer-map (kbd "C-x") nil)
+(define-key ivy-minibuffer-map (kbd "C-c") nil)
+(define-key ivy-minibuffer-map (kbd "C-v") nil)
+;; (global-set-key (kbd "C-c C-o") 'ivy-occur)
 
 
 ;;
@@ -404,6 +437,24 @@ what diminished modes would be on the mode-line if they were still minor."
 (define-key company-active-map (kbd "M-i") 'company-select-previous)
 (define-key company-active-map (kbd "M-k") 'company-select-next)
 
+
+
+;;
+;; Dired
+;;
+(add-hook 'dired-mode-hook
+ (lambda ()
+  (local-unset-key (kbd "C-o"))
+ ))
+
+
+;;
+;; Isearch
+;;
+(add-hook 'isearch-mode-hook
+ (lambda ()
+  (local-unset-key (kbd "M-y"))
+ ))
 
 
 ;;
