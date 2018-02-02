@@ -33,6 +33,7 @@
 
 (defvar kc/required-packages
   (list
+    'ag
     'wgrep
     'ivy
     'swiper
@@ -281,6 +282,7 @@ what diminished modes would be on the mode-line if they were still minor."
                         (filename . "emacs-config")
                         (filename . ".*/.*.el$")))
          ;; other stuff
+         ("ag"          (name . "^\\*ag"))
          ("dired"       (mode . dired-mode))
          ("log$"        (filename . ".*\.log$"))
          ("*.*"         (name . "\*.*\*"))
@@ -312,8 +314,6 @@ what diminished modes would be on the mode-line if they were still minor."
 
 (global-set-key (kbd "C-o") 'counsel-find-file)
 (global-set-key (kbd "C-b") 'ivy-switch-buffer)
-(global-set-key (kbd "M-y") 'swiper)
-(global-set-key (kbd "M-Y") 'swiper)
 (global-set-key (kbd "C-f") 'swiper)
 (global-set-key (kbd "M-a") 'counsel-M-x)
 (global-set-key (kbd "C-r") 'ivy-resume)
@@ -329,15 +329,40 @@ what diminished modes would be on the mode-line if they were still minor."
 ;; (global-set-key (kbd "C-c k") 'counsel-ag)
 ;; (global-set-key (kbd "C-x l") 'counsel-locate)
 ;; (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
-(define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
+(define-key ivy-minibuffer-map (kbd "C-r") 'counsel-minibuffer-history)
 (define-key ivy-minibuffer-map (kbd "M-i") 'ivy-previous-line)
-(define-key ivy-minibuffer-map (kbd "M-I") 'ivy-scroll-up-command)
+(define-key ivy-minibuffer-map (kbd "M-I") 'ivy-scroll-down-command)
 (define-key ivy-minibuffer-map (kbd "M-k") 'ivy-next-line)
-(define-key ivy-minibuffer-map (kbd "M-K") 'ivy-scroll-down-command)
+(define-key ivy-minibuffer-map (kbd "M-K") 'ivy-scroll-up-command)
+(define-key ivy-minibuffer-map (kbd "M-n") nil)
 (define-key ivy-minibuffer-map (kbd "C-z") nil)
 (define-key ivy-minibuffer-map (kbd "C-x") nil)
 (define-key ivy-minibuffer-map (kbd "C-c") nil)
 (define-key ivy-minibuffer-map (kbd "C-v") nil)
+
+(add-hook 'occur-mode-hook
+ (lambda ()
+  (local-unset-key (kbd "M-n"))
+  (local-unset-key (kbd "M-p"))
+  (local-unset-key (kbd "M-{"))
+  (local-unset-key (kbd "M-}"))
+))
+
+
+;;
+(require 'ag)
+;; Rename ag buffers for easier access
+(defun ag/buffer-name (search-string directory regexp)
+  "Return a buffer name formatted according to ag.el conventions."
+  (format "*ag: %s (%s)*" search-string directory))
+
+(add-hook 'ag-mode-hook
+ (lambda ()
+  (local-unset-key (kbd "M-n"))
+  (local-unset-key (kbd "M-p"))
+  (local-unset-key (kbd "M-{"))
+  (local-unset-key (kbd "M-}"))
+))
 
 
 ;;
@@ -427,6 +452,8 @@ what diminished modes would be on the mode-line if they were still minor."
 (add-hook 'c++-mode-hook
  (lambda ()
   (irony-mode t)
+  (diminish 'irony-mode)
+
   (add-to-list 'flycheck-gcc-include-path "/usr/include/c++/5.4.0")
   (add-to-list 'flycheck-gcc-include-path "/usr/include/boost")
 
@@ -437,8 +464,8 @@ what diminished modes would be on the mode-line if they were still minor."
 ))
 
 (defun kc-irony-mode-hook ()
-  (define-key irony-mode-map [remap completion-at-point] 'irony-completion-at-point-async)
-  (define-key irony-mode-map [remap complete-symbol] 'irony-completion-at-point-async)
+  (define-key irony-mode-map [remap completion-at-point] 'counsel-irony)
+  (define-key irony-mode-map [remap complete-symbol] 'counsel-irony)
 )
 
 (add-hook 'irony-mode-hook 'kc-irony-mode-hook)
