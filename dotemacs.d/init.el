@@ -202,9 +202,10 @@ what diminished modes would be on the mode-line if they were still minor."
 
 (setq ergoemacs-theme nil)
 (setq ergoemacs-keyboard-layout "us")
-(setq ergoemacs-mode-line nil)
+(setq ergoemacs-mode-line nil)  ;; diminish 'ergoemacs-mode
 (require 'ergoemacs-mode)
 (ergoemacs-mode 1)
+
 
 
 
@@ -481,10 +482,11 @@ what diminished modes would be on the mode-line if they were still minor."
 ;; Python
 ;;
 (require 'python)
-(require 'elpy)
 (add-hook 'python-mode-hook
  '(lambda ()
+  (require 'elpy)
   (elpy-enable)
+  (diminish 'elpy-mode)
   (elpy-use-cpython "/usr/bin/python3")
   (set (make-local-variable 'company-backends) '(elpy-company-backend company-yasnippet))
  ))
