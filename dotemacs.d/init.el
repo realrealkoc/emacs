@@ -33,7 +33,6 @@
 
 (defvar kc/required-packages
   (list
-    'ag
     'wgrep
     'ivy
     'swiper
@@ -142,6 +141,45 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
 
+;;
+;; Diminish
+;;
+(require 'diminish)
+(defun diminished-modes ()
+  "Echo all active diminished or minor modes as if they were minor.
+The display goes in the echo area; if it's too long even for that,
+you can see the whole thing in the *Messages* buffer.
+This doesn't change the status of any modes; it just lets you see
+what diminished modes would be on the mode-line if they were still minor."
+  (interactive)
+  (let ((minor-modes minor-mode-alist)
+        message)
+    (while minor-modes
+      (when (symbol-value (caar minor-modes))
+        ;; This minor mode is active in this buffer
+        (let* ((mode-pair (car minor-modes))
+               (mode (car mode-pair))
+               (minor-pair (or (assq mode diminished-mode-alist) mode-pair))
+               (minor-name (cadr minor-pair)))
+          (when (symbolp minor-name)
+            ;; This minor mode uses symbol indirection in the cdr
+            (let ((symbols-seen (list minor-name)))
+              (while (and (symbolp (callf symbol-value minor-name))
+                          (not (memq minor-name symbols-seen)))
+                (push minor-name symbols-seen))))
+          (push minor-name message)))
+      (callf cdr minor-modes))
+    ;; Handle :eval forms
+    (setq message (mapconcat
+                   (lambda (form)
+                     (if (and (listp form) (eq (car form) :eval))
+                         (apply 'eval (cdr form))
+                       form))
+                   (nreverse message) ""))
+    (when (= (string-to-char message) ?\ )
+      (callf substring message 1))
+    (message "%s" message)))
+
 
 ;;
 ;; dark theme
@@ -164,8 +202,10 @@
 
 (setq ergoemacs-theme nil)
 (setq ergoemacs-keyboard-layout "us")
+(setq ergoemacs-mode-line nil)
 (require 'ergoemacs-mode)
 (ergoemacs-mode 1)
+
 
 
 ;;
@@ -240,7 +280,6 @@
                         (filename . "emacs-config")
                         (filename . ".*/.*.el$")))
          ;; other stuff
-         ("ag"          (name . "^\\*ag"))
          ("dired"       (mode . dired-mode))
          ("log$"        (filename . ".*\.log$"))
          ("*.*"         (name . "\*.*\*"))
@@ -252,26 +291,12 @@
              (ibuffer-auto-mode 1)))
 
 
-;;
-(require 'ag)
-;; Rename ag buffers for easier access
-(defun ag/buffer-name (search-string directory regexp)
-  "Return a buffer name formatted according to ag.el conventions."
-  (format "*ag: %s (%s)*" search-string directory))
-
-
-;;
-;; Yasnippet
-;;
-(require 'yasnippet)
-(yas-global-mode 1)
-(diminish 'yas-minor-mode)
-
 
 ;;
 ;; Ivy
 ;;
 (ivy-mode 1)
+(diminish 'ivy-mode)
 
 (setq ivy-use-virtual-buffers t ; treat recentf, bookmarks as virtual buffers.
         ivy-extra-directories nil ; remove . and .. directory.
@@ -304,8 +329,10 @@
 ;; (global-set-key (kbd "C-x l") 'counsel-locate)
 ;; (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
 (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
-(define-key ivy-minibuffer-map (kbd "M-i") nil)
-(define-key ivy-minibuffer-map (kbd "M-k") nil)
+(define-key ivy-minibuffer-map (kbd "M-i") 'ivy-previous-line)
+(define-key ivy-minibuffer-map (kbd "M-I") 'ivy-scroll-up-command)
+(define-key ivy-minibuffer-map (kbd "M-k") 'ivy-next-line)
+(define-key ivy-minibuffer-map (kbd "M-K") 'ivy-scroll-down-command)
 (define-key ivy-minibuffer-map (kbd "C-z") nil)
 (define-key ivy-minibuffer-map (kbd "C-x") nil)
 (define-key ivy-minibuffer-map (kbd "C-c") nil)
@@ -313,43 +340,11 @@
 
 
 ;;
-;; Diminish
+;; Yasnippet
 ;;
-(require 'diminish)
-(defun diminished-modes ()
-  "Echo all active diminished or minor modes as if they were minor.
-The display goes in the echo area; if it's too long even for that,
-you can see the whole thing in the *Messages* buffer.
-This doesn't change the status of any modes; it just lets you see
-what diminished modes would be on the mode-line if they were still minor."
-  (interactive)
-  (let ((minor-modes minor-mode-alist)
-        message)
-    (while minor-modes
-      (when (symbol-value (caar minor-modes))
-        ;; This minor mode is active in this buffer
-        (let* ((mode-pair (car minor-modes))
-               (mode (car mode-pair))
-               (minor-pair (or (assq mode diminished-mode-alist) mode-pair))
-               (minor-name (cadr minor-pair)))
-          (when (symbolp minor-name)
-            ;; This minor mode uses symbol indirection in the cdr
-            (let ((symbols-seen (list minor-name)))
-              (while (and (symbolp (callf symbol-value minor-name))
-                          (not (memq minor-name symbols-seen)))
-                (push minor-name symbols-seen))))
-          (push minor-name message)))
-      (callf cdr minor-modes))
-    ;; Handle :eval forms
-    (setq message (mapconcat
-                   (lambda (form)
-                     (if (and (listp form) (eq (car form) :eval))
-                         (apply 'eval (cdr form))
-                       form))
-                   (nreverse message) ""))
-    (when (= (string-to-char message) ?\ )
-      (callf substring message 1))
-    (message "%s" message)))
+(require 'yasnippet)
+(yas-global-mode 1)
+(diminish 'yas-minor-mode)
 
 
 ;;
