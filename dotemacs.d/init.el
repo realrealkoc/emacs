@@ -314,6 +314,8 @@ what diminished modes would be on the mode-line if they were still minor."
 
 (global-set-key (kbd "C-o") 'counsel-find-file)
 (global-set-key (kbd "C-b") 'ivy-switch-buffer)
+(global-set-key (kbd "M-y") 'swiper)
+(global-set-key (kbd "M-Y") 'swiper)
 (global-set-key (kbd "C-f") 'swiper)
 (global-set-key (kbd "M-a") 'counsel-M-x)
 (global-set-key (kbd "C-r") 'ivy-resume)
