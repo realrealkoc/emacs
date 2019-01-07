@@ -56,7 +56,7 @@
     'flycheck
     'flycheck-irony
     'python-mode
-    'p4
+    'magit
     's
     'sr-speedbar
     'yasnippet
@@ -536,9 +536,11 @@ what diminished modes would be on the mode-line if they were still minor."
 
 
 ;;
-;; p4
+;; magit
 ;;
-(require 'p4)
+(require 'magit)
+(global-set-key (kbd "s-m") 'magit-status)
+
 
 ;;
 (require 'nginx-mode)
