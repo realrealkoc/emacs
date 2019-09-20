@@ -7,8 +7,6 @@
 
 ;; (setq debug-on-error nil)
 
-(package-initialize)
-
 (setq inhibit-splash-screen t
     inhibit-startup-echo-area-message t)
 
@@ -20,12 +18,22 @@
 ;; And maximize window
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
+(when (eq system-type 'darwin)
+  (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+  (add-to-list 'exec-path "/usr/local/bin"))
+
 ;;
 ;; package.el
 ;;
 (require 'package)
-(add-to-list 'package-archives
-             '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(setq package-archives
+      '(("MELPAStable" . "https://stable.melpa.org/packages/")
+        ("GNUELPA" . "https://elpa.gnu.org/packages/")
+        ("MELPA" . "https://melpa.org/packages/"))
+      package-archive-priorities
+      '(("MELPAStable" . 10)
+        ("GNUELPA" . 5)
+        ("MELPA" . 0)))
 (add-to-list 'package-directory-list (expand-file-name "elpa-to-submit" user-emacs-directory))
 (when (not package-archive-contents)
     (package-refresh-contents))
@@ -56,7 +64,12 @@
     'flycheck
     'flycheck-irony
     'python-mode
+    'go-mode
+    'dockerfile-mode
+    'p4
     'magit
+    'org
+    'htmlize
     's
     'sr-speedbar
     'yasnippet
@@ -200,14 +213,30 @@ what diminished modes would be on the mode-line if they were still minor."
                     :weight 'normal
                     :width 'normal)
 
+;; turn off anti-aliasing
+(setq mac-allow-anti-aliasing 1)
 
-(setq ergoemacs-theme nil)
-(setq ergoemacs-keyboard-layout "us")
-(setq ergoemacs-mode-line nil)  ;; diminish 'ergoemacs-mode
+
 (require 'ergoemacs-mode)
+(setq ergoemacs-debug t)
+(setq ergoemacs-keyboard-layout "us")
+(setq ergoemacs-theme nil)
+(setq ergoemacs-mode-line nil)  ;; diminish 'ergoemacs-mode
 (ergoemacs-mode 1)
 
+;; ⌘ key
+;; (setq mac-option-key-is-meta nil
+;;       mac-command-key-is-meta t
+;;       mac-command-modifier 'meta
+;;       mac-option-modifier 'super)
 
+;; set keys for Apple keyboard, for emacs in OS X
+(setq mac-option-key-is-meta nil)
+(setq mac-command-key-is-meta t)
+(setq mac-command-modifier 'meta) ; make cmd key do Meta
+(setq mac-option-modifier 'super) ; make opt key do Super
+(setq mac-control-modifier 'control) ; make Control key do Control
+(setq ns-function-modifier 'hyper)  ; make Fn key do Hyper
 
 
 ;;
@@ -459,10 +488,10 @@ what diminished modes would be on the mode-line if they were still minor."
   (add-to-list 'flycheck-gcc-include-path "/usr/include/c++/5.4.0")
   (add-to-list 'flycheck-gcc-include-path "/usr/include/boost")
 
-  (local-unset-key (kbd "M-a"))
-  (local-unset-key (kbd "M-e"))
-  (local-unset-key (kbd "M-j"))
-  (local-unset-key (kbd "M-q"))
+  ;; (local-unset-key (kbd "M-a"))
+  ;; (local-unset-key (kbd "M-e"))
+  ;; (local-unset-key (kbd "M-j"))
+  ;; (local-unset-key (kbd "M-q"))
 ))
 
 (defun kc-irony-mode-hook ()
@@ -507,18 +536,18 @@ what diminished modes would be on the mode-line if they were still minor."
 
 
 
-;;
-;; Python
-;;
-(require 'python)
-(add-hook 'python-mode-hook
- '(lambda ()
-  (require 'elpy)
-  (elpy-enable)
-  (diminish 'elpy-mode)
-  (elpy-use-cpython "/usr/bin/python3")
-  (set (make-local-variable 'company-backends) '(elpy-company-backend company-yasnippet))
- ))
+;; ;;
+;; ;; Python
+;; ;;
+;; (require 'python)
+;; (add-hook 'python-mode-hook
+;;  '(lambda ()
+;;   (require 'elpy)
+;;   (elpy-enable)
+;;   (diminish 'elpy-mode)
+;;   (elpy-use-cpython "/usr/bin/python3")
+;;   (set (make-local-variable 'company-backends) '(elpy-company-backend company-yasnippet))
+;;  ))
 
 
 ;;
@@ -536,10 +565,16 @@ what diminished modes would be on the mode-line if they were still minor."
 
 
 ;;
+;; p4
+;;
+(require 'p4)
+
+
+;;
 ;; magit
 ;;
 (require 'magit)
-(global-set-key (kbd "s-m") 'magit-status)
+(global-set-key (kbd "C-x g") 'magit-status)
 
 
 ;;
@@ -551,6 +586,15 @@ what diminished modes would be on the mode-line if they were still minor."
 (load-file (f-join kc/plugins-directory "robot-mode.el"))
 (add-to-list 'auto-mode-alist '("\\.robot\\'" . robot-mode))
 
+
+
+;;
+;; org-mode & reveal.js
+;;
+(require 'ox-reveal)
+
+(setq org-reveal-root "http://cdn.jsdelivr.net/reveal.js/3.0.0/")
+(setq org-reveal-mathjax t)
 
 
 ;;
