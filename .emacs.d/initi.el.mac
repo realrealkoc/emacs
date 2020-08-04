@@ -1,0 +1,644 @@
+;;; init.el --- my emacs init file
+;;; Commentary:
+;;; Code:
+
+(setq debug-on-error nil)
+
+(setq inhibit-splash-screen t
+    inhibit-startup-echo-area-message t)
+
+(menu-bar-mode 0)
+(tool-bar-mode 0)
+(scroll-bar-mode 0)
+
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+(when (eq system-type 'darwin)
+  (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+  (add-to-list 'exec-path "/usr/local/bin"))
+
+(require 'package)
+(setq package-archives
+      '(("MELPAStable" . "http://stable.melpa.org/packages/")
+        ("GNUELPA" . "http://elpa.gnu.org/packages/")
+        ("MELPA" . "http://melpa.org/packages/"))
+      package-archive-priorities
+      '(("MELPAStable" . 10)
+        ("GNUELPA" . 5)
+        ("MELPA" . 0)))
+(add-to-list 'package-directory-list (expand-file-name "elpa-to-submit" user-emacs-directory))
+(when (not package-archive-contents)
+    (package-refresh-contents))
+(package-initialize)
+
+(defvar kc//required-packages
+  (list
+    'f
+    'flycheck
+    'diminish
+    'ergoemacs-mode
+    'ag
+    'wgrep
+    'helm
+    'helm-ag
+    'helm-swoop
+    'helm-descbinds
+    'lsp-mode
+    'lsp-ui
+    ;; 'ivy
+    ;; 'swiper
+    'counsel
+    ;; 'projectile
+    ;; 'helm-projectile
+    ;; 'counsel-projectile
+    'sr-speedbar
+    'yasnippet
+    'yasnippet-snippets
+    'cmake-mode
+    'protobuf-mode
+    'magit
+    'spaceline
+    'spacemacs-theme
+    )
+  "Libraries that should be installed by default.")
+
+(dolist (package kc//required-packages)
+    (unless (or (member package package-activated-list)
+                (functionp package))
+      (message "Installing %s" (symbol-name package))
+      (package-install package)))
+
+;; generally useful
+(require 'f)
+
+(setq custom-file (f-join user-emacs-directory "emacs-custom.el"))
+(if (f-exists? custom-file)
+    (load custom-file))
+
+(defconst kc/plugins-directory (f-join user-emacs-directory "plugins")
+  "Plugins Directory.")
+
+(if (f-dir? kc/plugins-directory)
+    (add-to-list 'load-path kc/plugins-directory))
+
+(defconst kc//emacs-persistence-directory (f-join user-emacs-directory "data")
+  "Directory for Emacs data files and other garbage.")
+
+(unless (f-dir? kc//emacs-persistence-directory)
+  (f-mkdir kc//emacs-persistence-directory))
+
+;; auto-save and auto-backup
+(require 'desktop)
+(setq-default desktop-dirname (f-join kc//emacs-persistence-directory "desktop"))
+(unless (f-dir? desktop-dirname)
+  (f-mkdir desktop-dirname))
+(setq-default desktop-base-file-name "emacs.desktop")
+(setq-default desktop-base-lock-name "emacs.desktop.lock")
+(setq desktop-path (list desktop-dirname))
+(desktop-save-mode t)
+
+(setq auto-save-list-file-prefix (f-join kc//emacs-persistence-directory "auto-save-list/saves-"))
+(setq make-backup-files nil)
+(defconst autosave-directory (f-join kc//emacs-persistence-directory "autosave"))
+(unless (f-dir? autosave-directory)
+  (f-mkdir autosave-directory))
+(setq auto-save-file-name-transforms
+      `((".*", autosave-directory t)))
+
+;; log recent files (recentf-open-files will list them all)
+(recentf-mode t)
+(setq-default recentf-save-file (f-join kc//emacs-persistence-directory "recentf"))
+;; save minibuffer history
+(setq-default savehist-file (f-join kc//emacs-persistence-directory "minibuffer.history"))
+(savehist-mode 1)
+;; make indentation commands use space only (never tab character)
+(setq-default indent-tabs-mode nil)
+(setq-default tab-width 4)
+(setq-default c-basic-offset 4)
+(standard-display-ascii ?\t "→\t")
+
+;; highlight current line
+(global-hl-line-mode t)
+;; And matching parens
+(show-paren-mode t)
+(require 'paren)
+(setq blink-matching-paren-distance nil)
+(setq show-paren-style 'mixed)
+
+(fset 'yes-or-no-p 'y-or-n-p)
+
+;; Show column numbers
+(column-number-mode t)
+
+;; delete trailing spaces before saving
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+
+;;
+;; Diminish
+;;
+(require 'diminish)
+(defun diminished-modes ()
+  "Echo all active diminished or minor modes as if they were minor.
+The display goes in the echo area; if it's too long even for that,
+you can see the whole thing in the *Messages* buffer.
+This doesn't change the status of any modes; it just lets you see
+what diminished modes would be on the mode-line if they were still minor."
+  (interactive)
+  (let ((minor-modes minor-mode-alist)
+        message)
+    (while minor-modes
+      (when (symbol-value (caar minor-modes))
+        ;; This minor mode is active in this buffer
+        (let* ((mode-pair (car minor-modes))
+               (mode (car mode-pair))
+               (minor-pair (or (assq mode diminished-mode-alist) mode-pair))
+               (minor-name (cadr minor-pair)))
+          (when (symbolp minor-name)
+            ;; This minor mode uses symbol indirection in the cdr
+            (let ((symbols-seen (list minor-name)))
+              (while (and (symbolp (callf symbol-value minor-name))
+                          (not (memq minor-name symbols-seen)))
+                (push minor-name symbols-seen))))
+          (push minor-name message)))
+      (callf cdr minor-modes))
+    ;; Handle :eval forms
+    (setq message (mapconcat
+                   (lambda (form)
+                     (if (and (listp form) (eq (car form) :eval))
+                         (apply 'eval (cdr form))
+                       form))
+                   (nreverse message) ""))
+    (when (= (string-to-char message) ?\ )
+      (callf substring message 1))
+    (message "%s" message)))
+
+;;
+(diminish 'eldoc-mode)
+(diminish 'abbrev-mode)
+(diminish 'auto-revert-mode)
+
+;;
+(require 'flycheck)
+(diminish 'flycheck-mode)
+(global-flycheck-mode)
+
+(require 'undo-tree)
+(diminish 'undo-tree-mode)
+(global-undo-tree-mode)
+
+
+;;
+;; ergoemacs
+;;
+(require 'ergoemacs-mode)
+;; (setq ergoemacs-debug t)
+(setq ergoemacs-keyboard-layout "us")
+(setq ergoemacs-theme nil)
+(setq ergoemacs-mode-line nil)  ;; diminish 'ergoemacs-mode
+(ergoemacs-mode 1)
+
+;; ⌘ key
+;; (setq mac-option-key-is-meta nil
+;;       mac-command-key-is-meta t
+;;       mac-command-modifier 'meta
+;;       mac-option-modifier 'super)
+
+;; set keys for Apple keyboard, for emacs in OS X
+(setq mac-command-key-is-meta t)
+(setq mac-command-modifier 'meta)
+(setq ns-function-modifier 'control)
+
+;; ⌘ key for xrdp
+;; (setq x-alt-keysym 'meta)
+;; (setq x-super-keysym 'meta)
+
+
+;;
+;; dark theme
+;;
+;; (require 'spacemacs-theme)
+(load-theme 'spacemacs-dark t)
+(setq spacemacs-theme-org-agenda-height nil)
+(setq spacemacs-theme-org-height nil)
+
+(setq powerline-default-separator 'arrow-fade)
+(require 'spaceline-config)
+(spaceline-spacemacs-theme)
+
+;; (set-frame-font "-xos4-terminus-medium-r-normal--20-*-*-*-*-*-*-*" nil t)
+(set-face-attribute 'default nil
+                    :family "Source Code Pro"
+                    :height 130
+                    :weight 'normal
+                    :width 'normal)
+
+;; turn off anti-aliasing
+(setq mac-allow-anti-aliasing 1)
+
+
+;;
+;; Ag
+;;
+(require 'ag)
+;; Rename ag buffers for easier access
+(defun ag/buffer-name (search-string directory regexp)
+  "Return a buffer name formatted according to ag.el conventions."
+  (format "*ag: %s (%s)*" search-string directory))
+
+(add-hook 'ag-mode-hook
+ (lambda ()
+  (local-unset-key (kbd "M-n"))
+  (local-unset-key (kbd "M-p"))
+  (local-unset-key (kbd "M-{"))
+  (local-unset-key (kbd "M-}"))
+))
+
+
+;; ;;
+;; ;; Ivy
+;; ;;
+;; (ivy-mode 1)
+(diminish 'ivy-mode)
+
+;; (setq ivy-use-virtual-buffers t ; treat recentf, bookmarks as virtual buffers.
+;;         ivy-extra-directories nil ; remove . and .. directory.
+;;         ivy-count-format "")
+
+;; (setq ivy-ignore-buffers '("^\\*scratch\\*$"
+;;                   "^\\*Messages\\*$"
+;;                   "^\\*Ibuffer\\*$"
+;;                   "^\\*buffer-selection\\*$"
+;;                   "^\\*Flycheck error messages\\*$"
+;;                   "^\\*Quail Completions\\*$"))
+
+(global-set-key (kbd "C-c o") 'counsel-find-file)
+;; (global-set-key (kbd "<f1> f") 'counsel-describe-function)
+;; (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
+;; ;; (global-set-key (kbd "<f1> l") 'counsel-find-library)
+;; ;; (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
+;; ;; (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+;; ;; (global-set-key (kbd "C-c g") 'counsel-git)
+;; ;; (global-set-key (kbd "C-c j") 'counsel-git-grep)
+;; ;; (global-set-key (kbd "C-c C-r") 'counsel-ag)
+;; ;; (global-set-key (kbd "C-x l") 'counsel-locate)
+;; ;; (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+;; (define-key ivy-minibuffer-map (kbd "M-i") 'ivy-previous-line)
+;; (define-key ivy-minibuffer-map (kbd "M-I") 'ivy-scroll-down-command)
+;; (define-key ivy-minibuffer-map (kbd "M-k") 'ivy-next-line)
+;; (define-key ivy-minibuffer-map (kbd "M-K") 'ivy-scroll-up-command)
+;; (define-key ivy-minibuffer-map (kbd "M-n") nil)
+;; (define-key ivy-minibuffer-map (kbd "C-z") nil)
+;; (define-key ivy-minibuffer-map (kbd "C-x") nil)
+;; (define-key ivy-minibuffer-map (kbd "C-c") nil)
+;; (define-key ivy-minibuffer-map (kbd "C-v") nil)
+
+;; (add-hook 'occur-mode-hook
+;;  (lambda ()
+;;   (local-unset-key (kbd "M-n"))
+;;   (local-unset-key (kbd "M-p"))
+;;   (local-unset-key (kbd "M-{"))
+;;   (local-unset-key (kbd "M-}"))
+;; ))
+
+
+;;
+;; Helm
+;;
+(require 'helm)
+(require 'helm-config)
+
+(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
+
+(setq helm-M-x-fuzzy-match t)
+(setq helm-buffers-fuzzy-matching   t
+      helm-recentf-fuzzy-match      t)
+
+;; (setq helm-ff-skip-boring-files t)
+;; (add-to-list 'helm-boring-file-regexp-list "^\\*Messages\\*$")
+;; (add-to-list 'helm-boring-file-regexp-list "^\\*Flycheck error messages\\*$")
+;; (add-to-list 'helm-boring-file-regexp-list "^\\*Quail Completions\\*$")
+;; (add-to-list 'helm-boring-file-regexp-list "^magit")
+;; (add-to-list 'helm-boring-file-regexp-list "^\\*clangd")
+;; (add-to-list 'helm-boring-file-regexp-list "^\\*lsp")
+
+(setq helm-split-window-in-side-p           t ; open helm buffer inside current window, not occupy whole other window
+      helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
+      helm-ff-file-name-history-use-recentf t
+      helm-echo-input-in-header-line t)
+
+(defun spacemacs//helm-hide-minibuffer-maybe ()
+  "Hide minibuffer in Helm session if we use the header line as input field."
+  (when (with-helm-buffer helm-echo-input-in-header-line)
+    (let ((ov (make-overlay (point-min) (point-max) nil nil t)))
+      (overlay-put ov 'window (selected-window))
+      (overlay-put ov 'face
+                   (let ((bg-color (face-background 'default nil)))
+                     `(:background ,bg-color :foreground ,bg-color)))
+      (setq-local cursor-type nil))))
+
+(add-hook 'helm-minibuffer-set-up-hook
+          'spacemacs//helm-hide-minibuffer-maybe)
+
+;; (setq helm-autoresize-max-height 0)
+;; (setq helm-autoresize-min-height 20)
+;; (helm-autoresize-mode 1)
+
+(global-set-key (kbd "M-a") 'helm-M-x)
+(global-set-key (kbd "C-r") 'helm-resume)
+(global-set-key (kbd "C-o") 'helm-find-files)
+;; (global-set-key (kbd "C-c p o") 'helm-projectile-find-file)
+(global-set-key (kbd "C-b") 'helm-buffers-list)
+(global-set-key (kbd "C-c b") 'helm-mini)
+(global-set-key (kbd "<f2>") 'helm-mini)
+;; (global-set-key (kbd "C-c p b") 'helm-projectile)
+(global-set-key (kbd "C-c C-r") 'helm-do-grep-ag)
+(global-set-key (kbd "M-y") 'helm-occur)
+
+;; (require 'helm-swoop)
+;; (global-set-key (kbd "M-Y") 'helm-swoop)
+
+;; (setq helm-swoop-pre-input-function
+;;       (lambda ()
+;;         (if mark-active
+;;             (buffer-substring-no-properties (mark) (point))
+;;           "")))
+
+(define-key helm-map (kbd "M-i") 'helm-previous-line)
+(define-key helm-map (kbd "M-k") 'helm-next-line)
+(define-key helm-map (kbd "M-I") 'helm-previous-page)
+(define-key helm-map (kbd "M-K") 'helm-next-page)
+(define-key helm-map (kbd "M-N") 'helm-beginning-of-buffer)
+(define-key helm-map (kbd "M-n") 'helm-end-of-buffer)
+
+(define-key helm-map (kbd "C-c <ergoemacs-timeout>") 'ergoemacs-copy-line-or-region)
+(define-key helm-map (kbd "C-v") 'ergoemacs-paste)
+
+(helm-mode 1)
+(diminish 'helm-mode)
+
+;; (define-key helm-map (kbd "C-c C-s") 'helm-grep-run-save-buffer)
+
+;; (require 'wgrep)
+;; (define-key helm-map (kbd "C-c C-e") 'wgrep-change-to-wgrep-mode)
+
+
+;; (define-key helm-grep-mode-map (kbd "C-c C-e") 'wgrep-change-to-wgrep-mode)
+
+;; (define-key helm-grep-mode-map (kbd "C-x C-s") 'wgrep-finish-edit)
+
+;; (define-key helm-find-files-map (kbd "<tab>") 'helm-execute-persistent-action)
+(define-key helm-find-files-map (kbd "C-c C-r")  'helm-ff-run-grep-ag)
+
+;; (define-key helm-find-files-map (kbd "M-i") 'helm-previous-line)
+;; (define-key helm-find-files-map (kbd "M-k") 'helm-next-line)
+;; (define-key helm-find-files-map (kbd "M-I") 'helm-previous-page)
+;; (define-key helm-find-files-map (kbd "M-K") 'helm-next-page)
+;; (define-key helm-find-files-map (kbd "M-N") 'helm-beginning-of-buffer)
+;; (define-key helm-find-files-map (kbd "M-n") 'helm-end-of-buffer)
+
+
+
+;;
+;; lsp
+;;
+;; (setq lsp-keymap-prefix "C-c l")
+
+(require 'lsp-mode)
+(diminish 'lsp-mode)
+(setq lsp-clients-clangd-executable "/usr/local/Cellar/llvm/9.0.0/bin/clangd")
+(setq lsp-clients-clangd-args '("--clang-tidy"))
+(setq lsp-prefer-flymake nil)
+(setq lsp-enable-semantic-highlighting t)
+(setq lsp-enable-text-document-color t)
+(setq lsp-enable-imenu t)
+;; (define-key lsp-mode-map (kbd "C-c C-f") 'lsp-format-buffer)
+
+(add-hook 'c++-mode-hook #'lsp)
+
+(require 'lsp-ui)
+(add-hook 'lsp-mode-hook 'lsp-ui-mode)
+(setq lsp-ui-flycheck-enable t)
+
+(global-set-key (kbd "C-c r") 'lsp-find-references)
+(global-set-key (kbd "C-c d") 'lsp-find-definition)
+
+
+;;
+;; projectile
+;;
+;; (projectile-mode +1)
+(diminish 'projectile-mode)
+;; (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+;; (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+
+;; (projectile-global-mode)
+;; (setq projectile-completion-system 'helm)
+;; (helm-projectile-on)
+
+
+;;
+;; Common keys
+;;
+(global-set-key (kbd "C-c C-o") 'find-file)
+(global-set-key (kbd "C-S-r") 'revert-buffer)     ;; C-r
+
+(global-unset-key (kbd "M-'"))
+(global-set-key (kbd "M-[") 'ergoemacs-toggle-camel-case)
+(global-set-key (kbd "M-]") 'ergoemacs-toggle-letter-case)
+
+;; comment block (for normal people)
+(defun comment-eclipse ()
+  "Comment command."
+  (interactive)
+  (let ((start (line-beginning-position))
+        (end (line-end-position)))
+    (when (or (not transient-mark-mode) (region-active-p))
+      (setq start (save-excursion
+                    (goto-char (region-beginning))
+                    (beginning-of-line)
+                    (point))
+            end (save-excursion
+                  (goto-char (region-end))
+                  (end-of-line)
+                  (point))))
+    (comment-or-uncomment-region start end)
+    ))
+
+(global-set-key (kbd "M-/") 'comment-eclipse)
+
+
+;; built-in
+(require 'bs)
+(setq bs-configurations
+      '(("files" "^\\*scratch\\*" nil nil bs-visits-non-file bs-sort-buffer-interns-are-last)))
+
+(global-set-key (kbd "<f3>") 'bs-show)
+
+
+;;
+(require 'sr-speedbar)
+(global-set-key (kbd "<f12>") 'sr-speedbar-toggle)
+(setq speedbar-show-unknown-files t) ; show all files
+(setq speedbar-use-images nil) ; use text for buttons
+(setq sr-speedbar-right-side nil) ; put on left side
+(setq sr-speedbar-auto-refresh nil)
+
+
+;;
+(require 'ibuffer)
+;; (defalias 'list-buffers 'ibuffer)  ;; make ibuffer default
+(global-set-key (kbd "C-x C-b") 'ibuffer-other-window)
+(setq ibuffer-show-empty-filter-groups nil)
+(setq ibuffer-saved-filter-groups
+      '(("projects"
+
+         ("p4"          (name . "^\\*P4"))
+
+         ;; source
+         ("development/*"  (filename . "/projects/development/"))
+         ("depot/*"  (filename . "/projects/depot/"))
+         ("coretech/*"  (filename . "/projects/coretech/"))
+         ("sandbox/*"     (filename . "/local/sandbox/"))
+         ("local/*"           (filename . "/local/"))
+         ("projects/*"        (filename . "/projects/"))
+
+         ("emacs" (or
+                        (name . "^\\*scratch\\*$")
+                        (name . "^\\*Messages\\*$")))
+         ("emacs.d/*" (or
+                        (filename . ".emacs.d")
+                        (filename . "emacs-config")
+                        (filename . ".*/.*.el$")))
+         ;; other stuff
+         ("ag"          (name . "^\\*ag"))
+         ("dired"       (mode . dired-mode))
+         ("log$"        (filename . ".*\.log$"))
+         ("*.*"         (name . "\*.*\*"))
+         )))
+(add-hook 'ibuffer-mode-hook
+          '(lambda ()
+             (ibuffer-switch-to-saved-filter-groups "projects")
+             (add-to-list 'ibuffer-never-show-predicates "TAGS")
+             (ibuffer-auto-mode 1)))
+
+
+;;
+;; Yasnippet
+;;
+(require 'yasnippet)
+(yas-global-mode 1)
+(diminish 'yas-minor-mode)
+
+
+;;
+;; Dired
+;;
+(add-hook 'dired-mode-hook
+ (lambda ()
+  (local-unset-key (kbd "C-o"))
+ ))
+
+
+;;
+;; Isearch
+;;
+(add-hook 'isearch-mode-hook
+ (lambda ()
+  (local-unset-key (kbd "M-y"))
+  (local-unset-key (kbd "M-Y"))
+ ))
+
+
+;;
+;; C++
+;;
+(require 'google-c-style)
+(add-hook 'c-mode-common-hook 'google-set-c-style)
+(add-hook 'c-mode-common-hook 'google-make-newline-indent)
+
+(global-set-key (kbd "<f5>") 'recompile)
+(global-set-key (kbd "C-<f5>") 'compile)
+
+(defun kc-convenient-compile ()
+ "Compile command."
+ (interactive)
+ (call-interactively 'compile)
+ (global-set-key (kbd "<f5>") 'recompile)
+ )
+
+(global-set-key (kbd "<f5>") 'kc-convenient-compile)
+
+;; usefull compilance view
+(setq compilation-scroll-output t)
+(setq-default display-buffer-reuse-frames t)
+
+(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.hpp\\'" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.c\\'" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-mode))
+
+; Add cmake listfile names to the mode list.
+(setq auto-mode-alist
+  (append
+  '(("CMakeLists\\.txt\\'" . cmake-mode))
+  '(("\\.cmake\\'" . cmake-mode))
+  auto-mode-alist))
+
+
+;;
+;; protobuf
+;;
+(require 'protobuf-mode)
+
+
+;;
+;; magit
+;;
+(require 'magit)
+(global-set-key (kbd "C-x g") 'magit-status)
+
+
+;;
+;; Switching layout when entering commands
+;; http://ru-emacs.livejournal.com/82428.html
+;;
+(require 'quail)
+(defun reverse-input-method (input-method)
+  "Build the reverse mapping of single letters from INPUT-METHOD."
+  (interactive
+   (list (read-input-method-name "Use input method (default current): ")))
+  (if (and input-method (symbolp input-method))
+      (setq input-method (symbol-name input-method)))
+  (let ((current current-input-method)
+        (modifiers '(nil (control) (meta) (control meta))))
+    (when input-method
+      (activate-input-method input-method))
+    (when (and current-input-method quail-keyboard-layout)
+      (dolist (map (cdr (quail-map)))
+        (let* ((to (car map))
+               (from (quail-get-translation
+                      (cadr map) (char-to-string to) 1)))
+          (when (and (characterp from) (characterp to))
+            (dolist (mod modifiers)
+              (define-key local-function-key-map
+                (vector (append mod (list from)))
+                (vector (append mod (list to)))))))))
+    (when input-method
+      (activate-input-method current))))
+
+(reverse-input-method 'russian-computer)
+
+(defadvice read-passwd (around my-read-passwd act)
+  (let ((local-function-key-map nil))
+    ad-do-it))
+
+;;
+;; undisabled commands
+;;
+(put 'downcase-region 'disabled nil)
+(put 'upcase-region 'disabled nil)
+
+(provide 'init)
+;;; init.el ends here
